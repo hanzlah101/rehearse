@@ -2,13 +2,13 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/bricolage-grotesque";
-@import "@fontsource-variable/instrument-sans";
+@import "@fontsource-variable/figtree";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --font-heading: "Bricolage Grotesque Variable", ui-sans-serif, sans-serif;
-  --font-sans: "Instrument Sans Variable", ui-sans-serif, sans-serif;
+  --font-sans: "Figtree Variable", ui-sans-serif, sans-serif;
   --shadow-xs: 0 1px 2px oklch(0.189 0.037 264.1 / 0.06);
   --shadow-xs-skeuomorphic:
     inset 0 0 0 1px oklch(0.189 0.037 264.1 / 0.18),
