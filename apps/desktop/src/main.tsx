@@ -4,13 +4,17 @@ import ReactDOM from "react-dom/client";
 import App from "@/app";
 
 import "@/index.css";
+import "@/lib/theme";
 
-const darkScheme = window.matchMedia("(prefers-color-scheme: dark)");
-function syncTheme() {
-  document.documentElement.classList.toggle("dark", darkScheme.matches);
+// The webview has no reload shortcut of its own; mirror the browser's in dev.
+if (import.meta.env.DEV) {
+  window.addEventListener("keydown", (event) => {
+    if ((event.metaKey || event.ctrlKey) && event.key === "r") {
+      event.preventDefault();
+      window.location.reload();
+    }
+  });
 }
-syncTheme();
-darkScheme.addEventListener("change", syncTheme);
 
 const root = document.querySelector("#root");
 if (!root) {
