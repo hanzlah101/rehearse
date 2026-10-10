@@ -7,7 +7,7 @@ Rehearse is an AI speaking coach for presentations and business meetings. The us
 Bun workspace. Two apps:
 
 | Path | What | Stack |
-|---|---|---|
+| --- | --- | --- |
 | `apps/desktop` | The product. Runs all models locally. | Tauri 2 (Rust) + React + TypeScript + Vite |
 | `apps/web` | Web presence (landing / download page for now). Does not run models. | TanStack Start (React) |
 
@@ -19,7 +19,16 @@ bun run dev:desktop     # tauri dev
 bun run dev:web         # http://localhost:3000
 bun run build:desktop
 bun run build:web
+bun run lint            # ultracite: oxlint (type-aware) + oxfmt format check
+bun run format          # ultracite: auto-fix lint + format
+bun run typecheck       # tsc --noEmit (both apps)
+bun --filter desktop lint:rust     # cargo clippy, warnings = errors
+bun --filter desktop format:rust   # cargo fmt
 ```
+
+Linting/formatting is **Ultracite on Oxlint + Oxfmt** (no Biome, ESLint, or Prettier). Config: root `oxlint.config.mts` (presets `core`, `react`, `shadcn` + `@shadcn/lint` plugin) and `oxfmt.config.mts`; `apps/web/oxlint.config.ts` extends root and adds the `tanstack` preset. `@shadcn/lint` flags class names Tailwind doesn't know. Style the rules enforce: arrow-function components, kebab-case filenames, sorted object keys, no `||` for defaults (use `??`), no unsafe `as` casts. Run `bun run format && bun run lint && bun run typecheck` before finishing any task.
+
+**TypeScript 7** (native compiler) in both apps. Import from `src/` with the `@/` alias only (`@/styles.css?url`, `@/app`), never `./` or `../`. Alias is defined once in each app's `tsconfig.json` `paths`; Vite reads it via `resolve.tsconfigPaths`.
 
 ## Core loop
 
@@ -36,7 +45,7 @@ bun run build:web
 Run steps **sequentially**, unloading each model before the next loads.
 
 | Step | Tool | Output |
-|---|---|---|
+| --- | --- | --- |
 | 1. Verbatim transcript | **CrisperWhisper 2.0 large** via whisper.cpp (`whisper-rs`) | Words incl. fillers/false starts + word timestamps |
 | 2. Prosody | **Praat** CLI as Tauri sidecar (`praat --run script.praat`) | Pitch contour, intensity, pauses per word |
 | 3. Metrics | Rust code (no AI) | Fillers/min, WPM, pause stats, pitch variance |
@@ -68,11 +77,11 @@ score = 0.20*fluency   (fillers/min, pause quality)
 
 ## Model footprint
 
-| Model | Disk | RAM |
-|---|---|---|
-| CrisperWhisper 2.0 large (GGML q8) | ~1.6 GB | ~2–2.5 GB |
-| Qwen3.5 9B Q4_K_M | 6.6 GB | ~7.5 GB |
-| Praat | ~40 MB | negligible |
+| Model                              | Disk    | RAM        |
+| ---------------------------------- | ------- | ---------- |
+| CrisperWhisper 2.0 large (GGML q8) | ~1.6 GB | ~2–2.5 GB  |
+| Qwen3.5 9B Q4_K_M                  | 6.6 GB  | ~7.5 GB    |
+| Praat                              | ~40 MB  | negligible |
 
 ## Open items
 

@@ -1,11 +1,23 @@
 {
   "name": "rehearse",
   "private": true,
-  "workspaces": ["apps/*"],
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev:web": "bun --filter web dev",
     "dev:desktop": "bun --filter desktop tauri dev",
     "build:web": "bun --filter web build",
-    "build:desktop": "bun --filter desktop tauri build"
+    "build:desktop": "bun --filter desktop tauri build",
+    "typecheck": "bun --filter '*' typecheck",
+    "lint": "ultracite check --type-aware",
+    "format": "ultracite fix --type-aware"
+  },
+  "devDependencies": {
+    "@shadcn/lint": "^0.2.0",
+    "oxfmt": "^0.72.0",
+    "oxlint": "^1.87.0",
+    "oxlint-tsgolint": "^7.0.2004",
+    "ultracite": "7.12.4"
   }
 }
