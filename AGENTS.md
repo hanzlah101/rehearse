@@ -43,10 +43,11 @@ src/
 │   ├── rpc.$.ts                   # wiring: rpcHandler (typed client transport) at /api/rpc
 │   └── $.ts                       # wiring: openapiHandler (REST, /api/spec.json, /api/docs) at /api
 └── server/
-    ├── orpc.ts                    # Context type + publicOS base builder (400/500 declared, declaredErrorsOnly)
+    ├── orpc.ts                    # Context type, publicOS (400/500 declared, declaredErrorsOnly), protectedOS (+401/403, session)
     ├── errors.ts                  # defineError(), ERROR_STATUSES, shared error classes
-    ├── router.ts                  # root router { example: exampleRouter }, AppRouter type
-    ├── handlers.ts                # RPCHandler + OpenAPIHandler wiring (CORS, batch, coercion, docs)
+    ├── constants.ts               # global server constants (COOKIE_OPTIONS: HttpOnly, Lax, Secure in production)
+    ├── router.ts                  # root router { auth: authRouter }, AppRouter type
+    ├── handlers.ts                # RPCHandler + OpenAPIHandler wiring (CORS, batch, response headers, CSRF, coercion, docs)
     ├── core/
     │   ├── declared-errors.ts     # declaredErrorsOnly middleware + declaredErrorsPlugin (undeclared → typed 500, bad decode → 400)
     │   ├── input-validation.ts    # inputValidation middleware (422 + prettified issues)
@@ -57,16 +58,17 @@ src/
         ├── <name>.schemas.ts      # required: Zod input/output schemas + z.infer types (Zod-only imports)
         ├── <name>.errors.ts       # module error classes (error factory)
         ├── <name>.service.ts      # optional: logic + DB, no oRPC imports
-        └── <name>.constants.ts    # optional: CONST_CASE tunables
+        ├── <name>.middleware.ts   # optional: oRPC middleware (e.g. auth's requireSession)
+        └── <name>.constants.ts    # optional: CONST_CASE tunables; no `env` (schemas import it)
 ```
 
-- **Procedure = one chain:** `publicOS.meta(openapi({ method, path, summary, tags, successStatus? })).use(inputValidation).input(schema).output(schema).errors({...}).handler(({ input, errors }) => ...)`. Register it in the module's router object and the module in `server/router.ts`.
+- **Procedure = one chain:** `publicOS` (or `protectedOS`)`.meta(openapi({ method, path, summary, tags, successStatus? })).use(inputValidation).input(schema).output(schema).errors({...}).handler(({ input, errors }) => ...)`. Register it in the module's router object and the module in `server/router.ts`.
 - **Errors are classes** made with `defineError(code, { message, data?, status? })` from `server/errors.ts` and thrown with `throw new X()`:
   - Standard HTTP codes (`BAD_REQUEST`, `NOT_FOUND`, `UNPROCESSABLE_CONTENT`, …) are only for the shared classes in `server/errors.ts`; they take their status from oRPC's `COMMON_ERROR_STATUS_MAP`.
-  - **Module errors always use module-prefixed `SCREAMING_SNAKE` codes** (`EXAMPLE_NOT_FOUND`, `EXAMPLE_TITLE_TAKEN`) and declare a standard HTTP status next to them: `defineError("EXAMPLE_TITLE_TAKEN", { status: 409, message, data })`. A custom code without `status`, a lowercase code, a non-HTTP status (e.g. 418), or `status` on a standard code all fail to compile; reusing a custom code with a different status throws at startup.
+  - **Module errors always use module-prefixed `SCREAMING_SNAKE` codes** (`AUTH_INVALID_CREDENTIALS`) and declare a standard HTTP status next to them: `defineError("AUTH_INVALID_CREDENTIALS", { status: 401, message, data? })`. A custom code without `status`, a lowercase code, a non-HTTP status (e.g. 418), or `status` on a standard code all fail to compile; reusing a custom code with a different status throws at startup.
   - `defineError` registers custom statuses in `ERROR_STATUSES`, which both handlers and the OpenAPI generator use. There is no hand-maintained status map.
   - Shared classes live in `server/errors.ts` (`BadRequest`, `InternalServerError`, `InputValidationFailed`, `Unauthorized`, `Forbidden`, `NotFound`, `Conflict`); module classes in `<name>.errors.ts`.
-  - Declare every class a procedure throws: `.errors({ [ExampleTitleTaken.code]: ExampleTitleTaken })`.
+  - Declare every class a procedure throws: `.errors({ [AuthInvalidCredentials.code]: AuthInvalidCredentials })`.
   - Importing `error` or `ORPCError` from `@orpc/server` is lint-banned outside `server/errors.ts` and `server/core/`, so every error goes through `defineError`.
 - **Guarantee: a matched procedure only ever returns errors it declares.**
   - `publicOS` declares `BadRequest` (400) and `InternalServerError` (500) on every endpoint.
@@ -74,11 +76,14 @@ src/
   - Malformed bodies/queries (failed decoding) become a typed `BadRequest`.
   - `.use(inputValidation)` before `.input(schema)` adds 422 `InputValidationFailed` (code `UNPROCESSABLE_CONTENT`, `z.prettifyError` message + `data.issues`) only to endpoints with input.
   - The OpenAPI doc therefore lists no `UndefinedError`. Unknown routes return `{ defined: false, code: "NOT_FOUND" }` (no procedure to declare against). Network/proxy failures (499, 502–504) are not part of the API; clients keep one generic fallback for them.
-  - `Unauthorized`/`Forbidden` belong on a future `protectedOS`.
-- **Client:** `import { client } from "@/lib/orpc"`; handle errors with `safe(...)` + `isDefinedError(error) && error.code === "EXAMPLE_TITLE_TAKEN"` for typed `error.data`.
+  - `protectedOS` adds `Unauthorized` (401, no/expired session) and `Forbidden` (403, `GetMethodCsrfProtectionHandlerPlugin`). The CSRF plugin is listed before `declaredErrorsPlugin` in `handlers.ts` so the boundary wraps it and the 403 stays typed.
+- **Client:** `import { api } from "@/lib/orpc"`; handle errors with `safe(...)` + `isDefinedError(error) && error.code === "AUTH_INVALID_CREDENTIALS"` for typed `error.data`.
 - **Frontend-importable server files:** only `src/server/**/*.schemas.ts` and `*.errors.ts` (excluded from Start `importProtection`); everything else in `src/server` is blocked from client bundles.
 - **CORS:** `CORS_ORIGINS` (comma-separated), credentials on.
-- **CSRF:** not enabled yet; there are no auth cookies to protect. When auth lands: cookies `SameSite=Lax`/`Strict`, add `GetMethodCsrfProtectionHandlerPlugin`, and make sure the procedures it can block (GET under `protectedOS`) declare `Forbidden` so its 403 stays typed.
+- **CSRF:** session cookie is `SameSite=Lax`; `GetMethodCsrfProtectionHandlerPlugin` blocks cross-site GET navigations. Any public GET it can block would surface as 500, so GET procedures that need it go under `protectedOS`.
+- **Context:** `headers`, `clientIp` (from Start's `getRequestIP`, passed in by the routes and the SSR client), `resHeaders` (from `ResponseHeadersHandlerPlugin`; absent for in-process SSR calls, so cookies can't be set there). Cookies via `@orpc/server/helpers` (`getCookie`/`setCookie`/`deleteCookie`).
+- **Auth:** student ID + password, **no signups**. Add students: `bun --filter web student:add <student-id> "<name>"` (prompts for password; re-running resets it). Argon2id via `@node-rs/argon2`; unknown IDs verify against a dummy hash so timing doesn't leak them. Procedures: `auth.login` (POST `/auth/login`), `auth.session` (GET `/auth/session`, protected), `auth.logout` (POST `/auth/logout`, 204).
+- **Sessions:** random token in an HttpOnly `session` cookie (`SameSite=Lax`, `Secure` in production, 30 days); only its SHA-256 is stored, with student, expiry, IP, user agent. Protected procedures read `context.session` (`{ expiresAt, student }`).
 - **Docs** (non-production): `/api/docs` (Scalar), `/api/spec.json` (OpenAPI 3.2), generated from the router.
 - **DB:** Drizzle + `postgres`; `db.select()/insert()/update()/delete()` only, never `db.query.*`. Tables in `src/server/db/schema.ts`; migrations in `drizzle/` (committed).
 

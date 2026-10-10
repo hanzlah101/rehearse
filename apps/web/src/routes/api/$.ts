@@ -1,12 +1,16 @@
 import { COMMON_ERROR_STATUS_MAP } from "@orpc/client";
 import { createFileRoute } from "@tanstack/react-router";
+import { getRequestIP } from "@tanstack/react-start/server";
 
 import { NotFound } from "@/server/errors";
 import { openapiHandler } from "@/server/handlers";
 
 async function handle({ request }: { request: Request }) {
   const { response } = await openapiHandler.handle(request, {
-    context: { headers: request.headers },
+    context: {
+      clientIp: getRequestIP({ xForwardedFor: true }) ?? null,
+      headers: request.headers,
+    },
     prefix: "/api",
   });
 

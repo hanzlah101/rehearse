@@ -1,7 +1,7 @@
-import { exampleRouter } from "@/server/modules/example/example.router";
+import { authRouter } from "@/server/modules/auth/auth.router";
 
 export const router = {
-  example: exampleRouter,
+  auth: authRouter,
 };
 
 export type AppRouter = typeof router;

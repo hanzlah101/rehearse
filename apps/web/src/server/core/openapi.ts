@@ -4,6 +4,7 @@ import type { OpenAPIErrorBodyDefinition } from "@orpc/openapi";
 import { ZodToJsonSchemaConverter } from "@orpc/zod";
 
 import { ERROR_STATUSES } from "@/server/errors";
+import { SESSION_COOKIE_NAME } from "@/server/modules/auth/auth.constants";
 import { router } from "@/server/router";
 
 export const zodConverter = new ZodToJsonSchemaConverter();
@@ -40,6 +41,16 @@ function errorBodySchema({
 export async function generateOpenAPISpec() {
   return await openapiGenerator.generate(router, {
     base: {
+      components: {
+        securitySchemes: {
+          cookieAuth: {
+            description: "Session cookie set by POST /api/auth/login.",
+            in: "cookie",
+            name: SESSION_COOKIE_NAME,
+            type: "apiKey",
+          },
+        },
+      },
       info: {
         description: "Rehearse backend API.",
         title: "Rehearse API",
