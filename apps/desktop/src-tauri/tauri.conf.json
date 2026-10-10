@@ -13,8 +13,12 @@
     "windows": [
       {
         "title": "Rehearse",
-        "width": 800,
-        "height": 600
+        "width": 960,
+        "height": 680,
+        "minWidth": 640,
+        "minHeight": 520,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
       }
     ],
     "security": {
