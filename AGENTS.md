@@ -90,7 +90,7 @@ bun --filter web db:studio     # browse data
 
 ## Desktop UI
 
-- **shadcn/ui, `aria-nova` style** (`apps/desktop/components.json`): components are built on **react-aria-components**, not Radix. Add components with `bunx shadcn@latest add <name>` from `apps/desktop`, then run `bun run format` and convert any `function` components to arrow functions (lint rule).
+- **shadcn/ui, `aria-nova` style** (`apps/desktop/components.json`): components are built on **react-aria-components**, not Radix. Add components with `bunx shadcn@latest add <name>` from `apps/desktop`, then run `bun run format` and make sure every named component is a `function` declaration (lint rule `react/function-component-definition`).
 - **Tailwind v4**, theme lives in `apps/desktop/src/index.css` as OKLCH CSS variables. No `tailwind.config`.
 - **Palette "navy":** cool white surfaces, navy-black text, deep navy (`--primary`) for primary actions, brighter navy for focus rings; dark mode is deep navy with a periwinkle primary. Use theme tokens (`bg-primary`, `text-muted-foreground`), never raw colors.
 - **Fonts** are bundled via Fontsource (app works offline): Bricolage Grotesque for `h1`–`h3` (`font-heading`), Instrument Sans for everything else (`font-sans`).
