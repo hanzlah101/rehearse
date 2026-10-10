@@ -43,10 +43,14 @@ src/
 │   ├── rpc.$.ts                   # wiring: rpcHandler (typed client transport) at /api/rpc
 │   └── $.ts                       # wiring: openapiHandler (REST, /api/spec.json, /api/docs) at /api
 └── server/
-    ├── orpc.ts                    # publicOS (Context + 500 mapping/logging), inputValidation middleware (422)
-    ├── errors.ts                  # shared error classes, ERROR_STATUS_MAP, error-code Registry
+    ├── orpc.ts                    # Context type + publicOS base builder (400/500 declared, declaredErrorsOnly)
+    ├── errors.ts                  # defineError(), ERROR_STATUSES, shared error classes
     ├── router.ts                  # root router { example: exampleRouter }, AppRouter type
-    ├── handlers.ts                # RPCHandler + OpenAPIHandler, plugins (CORS, batch, declared errors, coercion, docs)
+    ├── handlers.ts                # RPCHandler + OpenAPIHandler wiring (CORS, batch, coercion, docs)
+    ├── core/
+    │   ├── declared-errors.ts     # declaredErrorsOnly middleware + declaredErrorsPlugin (undeclared → typed 500, bad decode → 400)
+    │   ├── input-validation.ts    # inputValidation middleware (422 + prettified issues)
+    │   └── openapi.ts             # OpenAPI generator, error body schemas, generateOpenAPISpec()
     ├── db/                        # client.ts (drizzle + postgres), schema.ts (tables)
     └── modules/<name>/
         ├── <name>.router.ts       # required: procedures
@@ -57,19 +61,21 @@ src/
 ```
 
 - **Procedure = one chain:** `publicOS.meta(openapi({ method, path, summary, tags, successStatus? })).use(inputValidation).input(schema).output(schema).errors({...}).handler(({ input, errors }) => ...)`. Register it in the module's router object and the module in `server/router.ts`.
-- **Errors are classes** made with oRPC's `error("CODE", { message, data? })` factory and thrown with `throw new X()`:
-  - Shared ones live in `server/errors.ts` (`BadRequest`, `InternalServerError`, `InputValidationFailed`, `Unauthorized`, `Forbidden`, `NotFound`, `Conflict`).
-  - Each module defines its own in `<name>.errors.ts` (`ExampleNotFound` reusing code `NOT_FOUND`, `ExampleTitleTaken` with typed `data`). New codes are prefixed with the module, and their status goes in `<NAME>_ERROR_STATUS`, spread into `ERROR_STATUS_MAP`.
-  - Declare every class a procedure throws: `.errors({ [ExampleNotFound.code]: ExampleNotFound })`.
+- **Errors are classes** made with `defineError(code, { message, data?, status? })` from `server/errors.ts` and thrown with `throw new X()`:
+  - Standard HTTP codes (`BAD_REQUEST`, `NOT_FOUND`, `UNPROCESSABLE_CONTENT`, …) are only for the shared classes in `server/errors.ts`; they take their status from oRPC's `COMMON_ERROR_STATUS_MAP`.
+  - **Module errors always use module-prefixed `SCREAMING_SNAKE` codes** (`EXAMPLE_NOT_FOUND`, `EXAMPLE_TITLE_TAKEN`) and declare a standard HTTP status next to them: `defineError("EXAMPLE_TITLE_TAKEN", { status: 409, message, data })`. A custom code without `status`, a lowercase code, a non-HTTP status (e.g. 418), or `status` on a standard code all fail to compile; reusing a custom code with a different status throws at startup.
+  - `defineError` registers custom statuses in `ERROR_STATUSES`, which both handlers and the OpenAPI generator use. There is no hand-maintained status map.
+  - Shared classes live in `server/errors.ts` (`BadRequest`, `InternalServerError`, `InputValidationFailed`, `Unauthorized`, `Forbidden`, `NotFound`, `Conflict`); module classes in `<name>.errors.ts`.
+  - Declare every class a procedure throws: `.errors({ [ExampleTitleTaken.code]: ExampleTitleTaken })`.
+  - Importing `error` or `ORPCError` from `@orpc/server` is lint-banned outside `server/errors.ts` and `server/core/`, so every error goes through `defineError`.
 - **Guarantee: a matched procedure only ever returns errors it declares.**
   - `publicOS` declares `BadRequest` (400) and `InternalServerError` (500) on every endpoint.
   - The `declaredErrorsOnly` middleware (procedure level, so SSR calls too) and the `declaredErrorsPlugin` handler interceptor (decode + plugins) turn anything undeclared into a logged (`[orpc] <path> failed`), typed `InternalServerError`. An undeclared `throw new X()` therefore surfaces as 500, never as an untyped error.
   - Malformed bodies/queries (failed decoding) become a typed `BadRequest`.
-  - `.use(inputValidation)` before `.input(schema)` adds 422 `InputValidationFailed` (`z.prettifyError` message + `data.issues`) only to endpoints with input.
-  - The error-code `Registry` contains only the codes in `ERROR_STATUS_MAP` (no oRPC built-ins), so `new ORPCError("BAD_GATEWAY")` or a typo doesn't compile.
+  - `.use(inputValidation)` before `.input(schema)` adds 422 `InputValidationFailed` (code `UNPROCESSABLE_CONTENT`, `z.prettifyError` message + `data.issues`) only to endpoints with input.
   - The OpenAPI doc therefore lists no `UndefinedError`. Unknown routes return `{ defined: false, code: "NOT_FOUND" }` (no procedure to declare against). Network/proxy failures (499, 502–504) are not part of the API; clients keep one generic fallback for them.
   - `Unauthorized`/`Forbidden` belong on a future `protectedOS`.
-- **Client:** `import { client } from "@/lib/orpc"`; handle errors with `safe(...)` + `isDefinedError(error) && error.code === "..."` for typed `error.data`.
+- **Client:** `import { client } from "@/lib/orpc"`; handle errors with `safe(...)` + `isDefinedError(error) && error.code === "EXAMPLE_TITLE_TAKEN"` for typed `error.data`.
 - **Frontend-importable server files:** only `src/server/**/*.schemas.ts` and `*.errors.ts` (excluded from Start `importProtection`); everything else in `src/server` is blocked from client bundles.
 - **CORS:** `CORS_ORIGINS` (comma-separated), credentials on.
 - **CSRF:** not enabled yet; there are no auth cookies to protect. When auth lands: cookies `SameSite=Lax`/`Strict`, add `GetMethodCsrfProtectionHandlerPlugin`, and make sure the procedures it can block (GET under `protectedOS`) declare `Forbidden` so its 403 stays typed.
