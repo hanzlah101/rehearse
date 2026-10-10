@@ -92,7 +92,7 @@ bun --filter web db:studio     # browse data
 
 - **shadcn/ui, `aria-nova` style** (`apps/desktop/components.json`): components are built on **react-aria-components**, not Radix. Add components with `bunx shadcn@latest add <name>` from `apps/desktop`, then run `bun run format` and make sure every named component is a `function` declaration (lint rule `react/function-component-definition`).
 - **Tailwind v4**, theme lives in `apps/desktop/src/index.css` as OKLCH CSS variables. No `tailwind.config`.
-- **Palette "navy":** cool white surfaces, navy-black text, deep navy (`--primary`) for primary actions, brighter navy for focus rings; dark mode is deep navy with a periwinkle primary. Use theme tokens (`bg-primary`, `text-muted-foreground`), never raw colors.
+- **Palette "cobalt":** neutral surfaces (near-zero chroma; dark mode body is pure gray, never tinted) with ink text and a saturated cobalt `--primary` (hue 262) with white text in both modes. Dark-mode `--border`/`--input` are white at 14%/22% so hairlines stay visible. No gradient washes. Use theme tokens (`bg-primary`, `text-muted-foreground`), never raw colors.
 - **Fonts** are bundled via Fontsource (app works offline): Bricolage Grotesque for `h1`–`h3` (`font-heading`), Figtree for everything else (`font-sans`).
 - **Dark mode** follows the OS (`prefers-color-scheme` toggles `.dark` on `<html>` in `main.tsx`).
 - **`@shadcn/lint`**: pages may only position components (margin, width, flex, gap). Appearance (padding, color, type) goes through component variants/sizes — e.g. `<Button size="lg">`, not `className="px-4"`.
