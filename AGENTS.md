@@ -9,12 +9,13 @@ Bun workspace. Two apps:
 | Path | What | Stack |
 | --- | --- | --- |
 | `apps/desktop` | The product. Runs all models locally. | Tauri 2 (Rust) + React + TypeScript + Vite |
-| `apps/web` | Web presence (landing / download page for now). Does not run models. | TanStack Start (React) |
+| `apps/web` | Web presence + backend API. Does not run models. | TanStack Start (React), oRPC, Drizzle + Postgres |
 
 Commands (from repo root):
 
 ```
 bun install
+bun run dev             # mprocs: web + desktop (+ db-studio on demand), see mprocs.yaml
 bun run dev:desktop     # tauri dev
 bun run dev:web         # http://localhost:3000
 bun run build:desktop
@@ -26,9 +27,60 @@ bun --filter desktop lint:rust     # cargo clippy, warnings = errors
 bun --filter desktop format:rust   # cargo fmt
 ```
 
-Linting/formatting is **Ultracite on Oxlint + Oxfmt** (no Biome, ESLint, or Prettier). Config: root `oxlint.config.mts` (presets `core`, `react`, `shadcn` + `@shadcn/lint` plugin) and `oxfmt.config.mts`; `apps/web/oxlint.config.ts` extends root and adds the `tanstack` preset. `@shadcn/lint` flags class names Tailwind doesn't know. Style the rules enforce: arrow-function components, kebab-case filenames, sorted object keys, no `||` for defaults (use `??`), no unsafe `as` casts. Run `bun run format && bun run lint && bun run typecheck` before finishing any task.
+Linting/formatting is **Ultracite on Oxlint + Oxfmt** (no Biome, ESLint, or Prettier). Config: root `oxlint.config.mts` (presets `core`, `react`, `shadcn` + `@shadcn/lint` plugin) and `oxfmt.config.mts`; `apps/web/oxlint.config.ts` extends root and adds the `tanstack` preset. `@shadcn/lint` flags class names Tailwind doesn't know. Types: `type` aliases, not `interface` (lint-enforced everywhere; the only exception is a `declare module` augmentation, which needs `interface` and gets a `// oxlint-disable-next-line typescript/consistent-type-definitions` on that line), derive with `Pick`/`Omit`/`Extract`/`z.infer`/`$inferSelect` instead of redeclaring shapes. Style: `function` declarations for named functions (convention, `func-style` is off) and components (enforced), arrows only inline (e.g. callbacks); the rules enforce kebab-case filenames, sorted object keys, no `||` for defaults (use `??`), no unsafe `as` casts. Run `bun run format && bun run lint && bun run typecheck` before finishing any task.
 
 **TypeScript 7** (native compiler) in both apps. Import from `src/` with the `@/` alias only (`@/styles.css?url`, `@/app`), never `./` or `../`. Alias is defined once in each app's `tsconfig.json` `paths`; Vite reads it via `resolve.tsconfigPaths`.
+
+## Web backend
+
+The API is **oRPC v2** (`2.0.0-beta.43`, pinned) inside TanStack Start. All server code lives in `apps/web/src/server/`; each feature is one folder in `src/server/modules/`.
+
+```
+src/
+├── env.ts                         # global t3 env (server vars + VITE_ client vars); use `env`, never process.env
+├── lib/orpc.ts                    # typed client: in-process on the server (SSR), RPCLink + batching in the browser
+├── routes/api/
+│   ├── rpc.$.ts                   # wiring: rpcHandler (typed client transport) at /api/rpc
+│   └── $.ts                       # wiring: openapiHandler (REST, /api/spec.json, /api/docs) at /api
+└── server/
+    ├── orpc.ts                    # publicOS (Context + 500 mapping/logging), inputValidation middleware (422)
+    ├── errors.ts                  # shared error classes, ERROR_STATUS_MAP, error-code Registry
+    ├── router.ts                  # root router { example: exampleRouter }, AppRouter type
+    ├── handlers.ts                # RPCHandler + OpenAPIHandler, plugins (CORS, batch, declared errors, coercion, docs)
+    ├── db/                        # client.ts (drizzle + postgres), schema.ts (tables)
+    └── modules/<name>/
+        ├── <name>.router.ts       # required: procedures
+        ├── <name>.schemas.ts      # required: Zod input/output schemas + z.infer types (Zod-only imports)
+        ├── <name>.errors.ts       # module error classes (error factory)
+        ├── <name>.service.ts      # optional: logic + DB, no oRPC imports
+        └── <name>.constants.ts    # optional: CONST_CASE tunables
+```
+
+- **Procedure = one chain:** `publicOS.meta(openapi({ method, path, summary, tags, successStatus? })).use(inputValidation).input(schema).output(schema).errors({...}).handler(({ input, errors }) => ...)`. Register it in the module's router object and the module in `server/router.ts`.
+- **Errors are classes** made with oRPC's `error("CODE", { message, data? })` factory and thrown with `throw new X()`:
+  - Shared ones live in `server/errors.ts` (`BadRequest`, `InternalServerError`, `InputValidationFailed`, `Unauthorized`, `Forbidden`, `NotFound`, `Conflict`).
+  - Each module defines its own in `<name>.errors.ts` (`ExampleNotFound` reusing code `NOT_FOUND`, `ExampleTitleTaken` with typed `data`). New codes are prefixed with the module, and their status goes in `<NAME>_ERROR_STATUS`, spread into `ERROR_STATUS_MAP`.
+  - Declare every class a procedure throws: `.errors({ [ExampleNotFound.code]: ExampleNotFound })`.
+- **Guarantee: a matched procedure only ever returns errors it declares.**
+  - `publicOS` declares `BadRequest` (400) and `InternalServerError` (500) on every endpoint.
+  - The `declaredErrorsOnly` middleware (procedure level, so SSR calls too) and the `declaredErrorsPlugin` handler interceptor (decode + plugins) turn anything undeclared into a logged (`[orpc] <path> failed`), typed `InternalServerError`. An undeclared `throw new X()` therefore surfaces as 500, never as an untyped error.
+  - Malformed bodies/queries (failed decoding) become a typed `BadRequest`.
+  - `.use(inputValidation)` before `.input(schema)` adds 422 `InputValidationFailed` (`z.prettifyError` message + `data.issues`) only to endpoints with input.
+  - The error-code `Registry` contains only the codes in `ERROR_STATUS_MAP` (no oRPC built-ins), so `new ORPCError("BAD_GATEWAY")` or a typo doesn't compile.
+  - The OpenAPI doc therefore lists no `UndefinedError`. Unknown routes return `{ defined: false, code: "NOT_FOUND" }` (no procedure to declare against). Network/proxy failures (499, 502–504) are not part of the API; clients keep one generic fallback for them.
+  - `Unauthorized`/`Forbidden` belong on a future `protectedOS`.
+- **Client:** `import { client } from "@/lib/orpc"`; handle errors with `safe(...)` + `isDefinedError(error) && error.code === "..."` for typed `error.data`.
+- **Frontend-importable server files:** only `src/server/**/*.schemas.ts` and `*.errors.ts` (excluded from Start `importProtection`); everything else in `src/server` is blocked from client bundles.
+- **CORS:** `CORS_ORIGINS` (comma-separated), credentials on.
+- **CSRF:** not enabled yet; there are no auth cookies to protect. When auth lands: cookies `SameSite=Lax`/`Strict`, add `GetMethodCsrfProtectionHandlerPlugin`, and make sure the procedures it can block (GET under `protectedOS`) declare `Forbidden` so its 403 stays typed.
+- **Docs** (non-production): `/api/docs` (Scalar), `/api/spec.json` (OpenAPI 3.2), generated from the router.
+- **DB:** Drizzle + `postgres`; `db.select()/insert()/update()/delete()` only, never `db.query.*`. Tables in `src/server/db/schema.ts`; migrations in `drizzle/` (committed).
+
+```
+bun --filter web db:generate   # create migration from schema changes
+bun --filter web db:migrate    # apply migrations
+bun --filter web db:studio     # browse data
+```
 
 ## Desktop UI
 
