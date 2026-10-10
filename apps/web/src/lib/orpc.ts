@@ -9,13 +9,13 @@ import { getRequestHeaders } from "@tanstack/react-start/server";
 import { router } from "@/server/router";
 import type { AppRouter } from "@/server/router";
 
-const getClient = createIsomorphicFn()
+export const api = createIsomorphicFn()
   .server(() =>
     createRouterClient(router, {
       context: () => ({ headers: getRequestHeaders() }),
     })
   )
-  .client((): RouterClient<AppRouter> => {
+  .client(() => {
     const link = new RPCLink({
       plugins: [
         new BatchLinkPlugin({
@@ -25,7 +25,5 @@ const getClient = createIsomorphicFn()
       url: "/api/rpc",
     });
 
-    return createORPCClient(link);
-  });
-
-export const client: RouterClient<AppRouter> = getClient();
+    return createORPCClient<RouterClient<AppRouter>>(link);
+  })();
