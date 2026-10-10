@@ -1,0 +1,11 @@
+procs:
+  web:
+    shell: bun run dev
+    cwd: <CONFIG_DIR>/apps/web
+  desktop:
+    shell: bun run tauri dev
+    cwd: <CONFIG_DIR>/apps/desktop
+  db-studio:
+    shell: bun run db:studio
+    cwd: <CONFIG_DIR>/apps/web
+    autostart: false
