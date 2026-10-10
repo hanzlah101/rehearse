@@ -20,14 +20,19 @@ function sync() {
 sync();
 darkScheme.addEventListener("change", sync);
 
+// Handle for the pending no-transitions removal, so rapid toggles don't
+// re-enable transitions while a later swap is still painting.
+let restoreFrame = 0;
+
 function setDark(dark: boolean) {
   localStorage.setItem(STORAGE_KEY, dark ? "dark" : "light");
   // Swap colors instantly: mismatched per-element transitions look like a flicker.
   const html = document.documentElement;
   html.classList.add("no-transitions");
   sync();
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
+  cancelAnimationFrame(restoreFrame);
+  restoreFrame = requestAnimationFrame(() => {
+    restoreFrame = requestAnimationFrame(() => {
       html.classList.remove("no-transitions");
     });
   });
