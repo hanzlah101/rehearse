@@ -1,0 +1,11 @@
+{
+  "name": "rehearse",
+  "private": true,
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "dev:web": "bun --filter web dev",
+    "dev:desktop": "bun --filter desktop tauri dev",
+    "build:web": "bun --filter web build",
+    "build:desktop": "bun --filter desktop tauri build"
+  }
+}
