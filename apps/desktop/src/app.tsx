@@ -4,7 +4,7 @@ import { Label, TextField } from "react-aria-components";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-const App = () => {
+function App() {
   const [topic, setTopic] = useState("");
 
   return (
@@ -33,6 +33,6 @@ const App = () => {
       </div>
     </main>
   );
-};
+}
 
 export default App;

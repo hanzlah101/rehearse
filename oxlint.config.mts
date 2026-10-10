@@ -7,4 +7,15 @@ export default defineConfig({
   extends: [core, react, shadcn],
   ignorePatterns: core.ignorePatterns,
   jsPlugins: shadcn.jsPlugins,
+  rules: {
+    "func-style": "off",
+    "react/function-component-definition": [
+      "error",
+      {
+        namedComponents: "function-declaration",
+        unnamedComponents: "arrow-function",
+      },
+    ],
+    "typescript/consistent-type-definitions": ["error", "type"],
+  },
 });

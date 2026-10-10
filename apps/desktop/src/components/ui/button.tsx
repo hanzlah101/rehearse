@@ -49,7 +49,7 @@ const buttonVariants = cva(
   }
 );
 
-const Button = ({
+function Button({
   className,
   variant = "default",
   size = "default",
@@ -58,17 +58,19 @@ const Button = ({
   React.RefAttributes<HTMLButtonElement> &
   VariantProps<typeof buttonVariants> & {
     className?: string;
-  }) => (
-  <ButtonPrimitive
-    data-slot="button"
-    data-variant={variant}
-    data-size={size}
-    className={cn(buttonVariants({ className, size, variant }))}
-    {...props}
-  />
-);
+  }) {
+  return (
+    <ButtonPrimitive
+      data-slot="button"
+      data-variant={variant}
+      data-size={size}
+      className={cn(buttonVariants({ className, size, variant }))}
+      {...props}
+    />
+  );
+}
 
-const LinkButton = ({
+function LinkButton({
   className,
   variant = "default",
   size = "default",
@@ -76,14 +78,16 @@ const LinkButton = ({
 }: Omit<LinkPrimitiveProps, "className"> &
   VariantProps<typeof buttonVariants> & {
     className?: string;
-  }) => (
-  <LinkPrimitive
-    data-slot="button"
-    data-variant={variant}
-    data-size={size}
-    className={cn(buttonVariants({ className, size, variant }))}
-    {...props}
-  />
-);
+  }) {
+  return (
+    <LinkPrimitive
+      data-slot="button"
+      data-variant={variant}
+      data-size={size}
+      className={cn(buttonVariants({ className, size, variant }))}
+      {...props}
+    />
+  );
+}
 
 export { Button, LinkButton, buttonVariants };
