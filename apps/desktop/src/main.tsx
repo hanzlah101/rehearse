@@ -4,13 +4,7 @@ import ReactDOM from "react-dom/client";
 import App from "@/app";
 
 import "@/index.css";
-
-const darkScheme = window.matchMedia("(prefers-color-scheme: dark)");
-function syncTheme() {
-  document.documentElement.classList.toggle("dark", darkScheme.matches);
-}
-syncTheme();
-darkScheme.addEventListener("change", syncTheme);
+import "@/lib/theme";
 
 const root = document.querySelector("#root");
 if (!root) {

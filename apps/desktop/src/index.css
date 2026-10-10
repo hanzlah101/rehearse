@@ -133,6 +133,12 @@
   ::selection {
     @apply bg-primary/25;
   }
+  .no-transitions,
+  .no-transitions *,
+  .no-transitions *::before,
+  .no-transitions *::after {
+    transition: none !important;
+  }
   html {
     @apply font-sans;
   }

@@ -95,7 +95,7 @@ bun --filter web db:studio     # browse data
 - **Palette "cobalt":** neutral surfaces (near-zero chroma; dark mode body is pure gray, never tinted) with ink text and a saturated cobalt `--primary` (hue 262) with white text in both modes. Dark-mode `--border`/`--input` are white at 14%/22% so hairlines stay visible. No gradient washes. Use theme tokens (`bg-primary`, `text-muted-foreground`), never raw colors.
 - **Window:** macOS uses an overlay title bar, so the app `<header>` carries `data-tauri-drag-region` and keeps its content centered, clear of the traffic lights.
 - **Fonts** are bundled via Fontsource (app works offline): Bricolage Grotesque for `h1`–`h3` (`font-heading`), Figtree for everything else (`font-sans`).
-- **Dark mode** follows the OS (`prefers-color-scheme` toggles `.dark` on `<html>` in `main.tsx`).
+- **Dark mode:** `src/lib/theme.ts` follows the OS until the user flips the header `Switch`, then persists the choice in `localStorage` (`theme`). It adds `.no-transitions` to `<html>` during the swap so colors change instantly.
 - **`@shadcn/lint`**: pages may only position components (margin, width, flex, gap). Appearance (padding, color, type) goes through component variants/sizes — e.g. `<Button size="lg">`, not `className="px-4"`.
 - Use React Aria primitives (`TextField`, `Label`) to wire labels and inputs for accessibility.
 - **Component feel:** primary Button = top-lit gradient + `shadow-xs-skeuomorphic` + fading white hairline (`before:`); press feedback is `data-pressed:scale-[0.97]` (React Aria state, covers keyboard too), never translate. Input = `ring-1 ring-input ring-inset` + `shadow-xs`, `focus:ring-2 ring-ring`, no border. Shadow tokens live in `@theme` in `index.css`.

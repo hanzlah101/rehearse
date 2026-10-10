@@ -3,20 +3,31 @@ import { Label, TextField } from "react-aria-components";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { setDark, useIsDark } from "@/lib/theme";
 
 function App() {
   const [topic, setTopic] = useState("");
+  const isDark = useIsDark();
 
   return (
     <div className="flex min-h-svh flex-col">
       {/* Doubles as the window's title bar (macOS overlay style). */}
       <header
         data-tauri-drag-region
-        className="flex h-12 shrink-0 items-center justify-center"
+        className="relative flex h-12 shrink-0 items-center justify-center"
       >
         <span className="pointer-events-none font-heading text-sm font-semibold">
           Rehearse
         </span>
+        <Switch
+          className="absolute right-4"
+          isSelected={isDark}
+          onChange={setDark}
+          size="sm"
+        >
+          Dark mode
+        </Switch>
       </header>
 
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-10 px-8 pb-12">
