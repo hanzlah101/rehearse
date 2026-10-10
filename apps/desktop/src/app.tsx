@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Label, TextField } from "react-aria-components";
 
+import logo from "@/assets/logo.svg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -17,9 +18,10 @@ function App() {
         data-tauri-drag-region
         className="relative flex h-12 shrink-0 items-center justify-center"
       >
-        <span className="pointer-events-none font-heading text-sm font-semibold">
-          Rehearse
-        </span>
+        <div className="pointer-events-none flex items-center gap-2">
+          <img src={logo} alt="" className="size-6" />
+          <span className="font-heading text-sm font-semibold">Rehearse</span>
+        </div>
         <Switch
           className="absolute right-4"
           isSelected={isDark}
