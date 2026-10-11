@@ -1,11 +1,15 @@
 import { cn } from "cn";
 import type * as React from "react";
 
-// One spoke per 45°. Each starts its fade a step later than the last (negative
+// One spoke per 30°. Each starts its fade a step later than the last (negative
 // delays, so every spoke is mid-cycle on the first frame), which makes a bright
 // spoke sweep round. Delays are literal classes so Tailwind can see them; keep
-// them in steps of the 0.8s cycle in index.css (--animate-spinner-spoke) / 8.
+// them in steps of the 1.2s cycle in index.css (--animate-spinner-spoke) / 12.
 const SPOKE_DELAYS = [
+  "[animation-delay:-1200ms]",
+  "[animation-delay:-1100ms]",
+  "[animation-delay:-1000ms]",
+  "[animation-delay:-900ms]",
   "[animation-delay:-800ms]",
   "[animation-delay:-700ms]",
   "[animation-delay:-600ms]",
@@ -27,7 +31,7 @@ function Spinner({ className, ...props }: React.ComponentProps<"svg">) {
       height="1em"
       stroke="currentColor"
       strokeLinecap="round"
-      strokeWidth={2.25}
+      strokeWidth={2}
       viewBox="0 0 24 24"
       width="1em"
       className={cn("shrink-0", className)}
@@ -37,7 +41,7 @@ function Spinner({ className, ...props }: React.ComponentProps<"svg">) {
         <line
           key={delay}
           className={cn("animate-spinner-spoke", delay)}
-          transform={`rotate(${index * 45} 12 12)`}
+          transform={`rotate(${index * 30} 12 12)`}
           x1="12"
           x2="12"
           y1="3"

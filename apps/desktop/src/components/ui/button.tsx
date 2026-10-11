@@ -25,6 +25,9 @@ const buttonVariants = cva(
         "icon-lg": "size-10",
         "icon-sm":
           "size-8 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
+        // Round record button for the page's one main action, with a halo.
+        "icon-xl":
+          "size-18 rounded-full ring-8 ring-primary/12 [&_svg:not([class*='size-'])]:size-7",
         "icon-xs":
           "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
         lg: "h-10 gap-1.5 px-4 has-data-[icon=inline-end]:pr-3.5 has-data-[icon=inline-start]:pl-3.5",
@@ -34,15 +37,26 @@ const buttonVariants = cva(
       variant: {
         default:
           "border-0 bg-primary bg-linear-to-b from-white/12 to-transparent text-primary-foreground shadow-xs-skeuomorphic before:pointer-events-none before:absolute before:inset-px before:rounded-[inherit] before:border before:border-white/12 before:mask-b-from-0% hover:bg-[color-mix(in_oklch,var(--primary),black_12%)]",
+        // Solid, like default: the confirming action of a destructive choice.
         destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:outline-destructive dark:bg-destructive/20 dark:hover:bg-destructive/30",
+          "border-0 bg-destructive bg-linear-to-b from-white/12 to-transparent text-white shadow-xs-skeuomorphic before:pointer-events-none before:absolute before:inset-px before:rounded-[inherit] before:border before:border-white/12 before:mask-b-from-0% hover:bg-[color-mix(in_oklch,var(--destructive),black_12%)] focus-visible:outline-destructive",
         "destructive-ghost":
           "text-destructive hover:bg-destructive/10 focus-visible:outline-destructive aria-expanded:bg-destructive/10 dark:hover:bg-destructive/20 dark:aria-expanded:bg-destructive/20",
+        // Soft red tint: a destructive option next to calmer ones (Cancel).
+        "destructive-muted":
+          "bg-destructive/10 text-destructive hover:bg-destructive/18 focus-visible:outline-destructive dark:bg-destructive/18 dark:hover:bg-destructive/28",
         ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-input/40 dark:aria-expanded:bg-input/40",
         link: "text-primary underline-offset-4 hover:underline",
+        // Soft neutral fill: a secondary action that should stay quiet.
+        muted:
+          "bg-muted text-foreground hover:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_7%)] aria-expanded:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_7%)] dark:bg-input/25 dark:hover:bg-input/40 dark:aria-expanded:bg-input/40",
         outline:
           "border-0 bg-card text-foreground shadow-xs-skeuomorphic ring-1 ring-border ring-inset hover:bg-muted aria-expanded:bg-muted dark:bg-input/30 dark:ring-input dark:hover:bg-input/50",
+        // Cobalt glass: a tint that deepens toward the bottom, a firm primary
+        // ring, a white hairline catching the top, flat neutral shadow.
+        "primary-outline":
+          "border-0 bg-card bg-linear-to-b from-primary/8 to-primary/20 text-primary shadow-xs ring-1 ring-primary/60 ring-inset before:pointer-events-none before:absolute before:inset-px before:rounded-[inherit] before:border before:border-white/90 before:mask-b-from-0% hover:from-primary/14 hover:to-primary/28 hover:ring-primary/80 dark:bg-transparent dark:from-primary/55 dark:to-primary/20 dark:text-primary-foreground dark:ring-primary/80 dark:before:border-white/30 dark:hover:from-primary/75 dark:hover:to-primary/35 dark:hover:ring-primary",
         secondary:
           "bg-secondary text-secondary-foreground shadow-xs hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
       },
