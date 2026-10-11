@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { HomePage } from "@/modules/home/pages/home-page";
+import { NewRehearsalPage } from "@/modules/rehearsal/pages/new-rehearsal-page";
 
-export const Route = createFileRoute("/(private)/")({
-  component: HomePage,
+export const Route = createFileRoute("/(private)/(app)/")({
+  component: NewRehearsalPage,
 });
