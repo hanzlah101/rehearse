@@ -47,7 +47,9 @@ function findVisibleByTitle(studentId: string, title: string) {
       .where(
         and(
           visibleTo(studentId),
-          eq(sql`lower(${topics.title})`, title.toLowerCase())
+          // lower() on both sides so matching follows the unique indexes
+          // exactly (JS and Postgres lowercase some Unicode differently).
+          eq(sql`lower(${topics.title})`, sql`lower(${title})`)
         )
       )
       // Prefer the shared topic when the student's own one has the same title.
