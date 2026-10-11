@@ -111,7 +111,8 @@ src/
     │   ├── lib/env.ts             # t3 env (VITE_API_URL, default http://localhost:3000)
     │   ├── lib/orpc.ts            # `api` (typed RouterClient<AppRouter>, cookies included) + `orpc` (TanStack Query utils)
     │   ├── lib/query-client.ts    # createQueryClient(): no retry on 401
-    │   └── lib/errors.ts          # isUnauthorized(error), getErrorMessage(error, fallback)
+    │   ├── lib/errors.ts          # isUnauthorized(error), getErrorMessage(error, fallback)
+    │   └── components/title-bar.tsx # overlay title bar: drag region, logo, theme Switch
     └── <name>/                    # only the folders a module needs
         ├── pages/                 # one component per route, imported by src/routes/
         ├── components/
@@ -133,11 +134,13 @@ src/
 
 - **shadcn/ui, `aria-nova` style** (`apps/desktop/components.json`): components are built on **react-aria-components**, not Radix. Add components with `bunx shadcn@latest add <name>` from `apps/desktop`, then run `bun run format` and make sure every named component is a `function` declaration (lint rule `react/function-component-definition`).
 - **Tailwind v4**, theme lives in `apps/desktop/src/index.css` as OKLCH CSS variables. No `tailwind.config`.
-- **Palette "navy":** cool white surfaces, navy-black text, deep navy (`--primary`) for primary actions, brighter navy for focus rings; dark mode is deep navy with a periwinkle primary. Use theme tokens (`bg-primary`, `text-muted-foreground`), never raw colors.
+- **Palette "cobalt":** neutral surfaces (near-zero chroma; dark mode body is pure gray, never tinted) with ink text and a saturated cobalt `--primary` (hue 262) with white text in both modes. Dark-mode `--border`/`--input` are white at 14%/22% so hairlines stay visible. No gradient washes. Use theme tokens (`bg-primary`, `text-muted-foreground`), never raw colors.
 - **Icons:** Tabler (`@tabler/icons-react`, `components.json` `iconLibrary: "tabler"`). Prefer the filled variants (`IconCircleCheckFilled`, `IconEyeFilled`); fall back to the outline icon only when no filled one exists (`IconEyeClosed`, `IconLoader2`). No lucide, no Hugeicons.
 - **Button** `isLoading`: React Aria `isPending` + spinner (replaces the icon on `icon*` sizes, leads the label otherwise). Use it instead of `isPending`.
-- **Fonts** are bundled via Fontsource (app works offline): Bricolage Grotesque for `h1`–`h3` (`font-heading`), Instrument Sans for everything else (`font-sans`).
-- **Dark mode** follows the OS (`prefers-color-scheme` toggles `.dark` on `<html>` in `main.tsx`).
+- **Logo:** source is `src/assets/logo.svg`: a microphone whose capsule is five waveform bars (the speaker's voice) over a stem and base, flat white on a squircle styled like the primary Button (solid dark-mode `--primary` `#427FF7`, white 28%→0 top light, ink 0→22% bottom shade, 8px inset ink ring, white hairline fading 40%→6%). Change the fill together with the palette. After editing it, render a 1024px PNG and run `bunx tauri icon <png>` from `apps/desktop` to regenerate `src-tauri/icons` (delete the `android/` and `ios/` output).
+- **Window:** macOS uses an overlay title bar, so `TitleBar` (`modules/common/components/title-bar.tsx`, rendered by the root layout above every page) carries `data-tauri-drag-region` and keeps its content centered, clear of the traffic lights. Pages fill the rest with `flex-1`, not `min-h-svh`. First launch opens maximized; `tauri-plugin-window-state` then persists size/position/maximized across restarts (so `width`/`height` in `tauri.conf.json` only matter before the first resize).
+- **Fonts** are bundled via Fontsource (app works offline): Bricolage Grotesque for `h1`–`h3` (`font-heading`), Figtree for everything else (`font-sans`).
+- **Dark mode:** `src/lib/theme.ts` follows the OS until the user flips the `Switch` in `TitleBar`, then persists the choice in `localStorage` (`theme`). It adds `.no-transitions` to `<html>` during the swap so colors change instantly.
 - **`@shadcn/lint`**: pages may only position components (margin, width, flex, gap). Appearance (padding, color, type) goes through component variants/sizes — e.g. `<Button size="lg">`, not `className="px-4"`.
 - Use React Aria primitives (`TextField`, `Label`) to wire labels and inputs for accessibility.
 - **Component feel:** primary Button = top-lit gradient + `shadow-xs-skeuomorphic` + fading white hairline (`before:`); press feedback is `data-pressed:scale-[0.97]` (React Aria state, covers keyboard too), never translate. Input = `ring-1 ring-input ring-inset` + `shadow-xs`, `focus:ring-2 ring-ring`, no border; invalid = React Aria's `data-invalid` → `ring-destructive` (never `aria-invalid:` variants). `InputGroup` draws that same surface and its control goes transparent. shadcn output needs cleanup before it lints (sorted cva keys, no `"use client"`, no `as` casts, strict booleans) and restyling to this feel. Shadow tokens live in `@theme` in `index.css`.

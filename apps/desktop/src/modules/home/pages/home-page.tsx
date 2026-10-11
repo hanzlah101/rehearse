@@ -12,7 +12,7 @@ export function HomePage() {
   const logout = useLogout();
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-xl flex-col justify-center gap-10 px-8">
+    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-10 px-8 pb-12">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">{student.name}</p>
         <Button
