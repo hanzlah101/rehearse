@@ -8,8 +8,11 @@ import { Toaster as Sonner } from "sonner";
 import type { ToasterProps } from "sonner";
 
 import { Spinner } from "@/components/ui/spinner";
+import { useIsDark } from "@/lib/theme";
 
 function Toaster(props: ToasterProps) {
+  const isDark = useIsDark();
+
   return (
     <Sonner
       icons={{
@@ -20,7 +23,7 @@ function Toaster(props: ToasterProps) {
         warning: <IconAlertTriangleFilled className="size-4" />,
       }}
       richColors
-      theme="system"
+      theme={isDark ? "dark" : "light"}
       {...props}
     />
   );
