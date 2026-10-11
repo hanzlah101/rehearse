@@ -3,12 +3,30 @@ import { Label, TextField } from "react-aria-components";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useLogout } from "@/modules/auth/actions/logout";
+import { useSession } from "@/modules/auth/queries/session";
 
-function App() {
+export function HomePage() {
   const [topic, setTopic] = useState("");
+  const { student } = useSession();
+  const logout = useLogout();
 
   return (
     <main className="mx-auto flex min-h-svh max-w-xl flex-col justify-center gap-10 px-8">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">{student.name}</p>
+        <Button
+          isLoading={logout.isPending}
+          onPress={() => {
+            logout.mutate();
+          }}
+          size="sm"
+          variant="ghost"
+        >
+          Log out
+        </Button>
+      </div>
+
       <div className="flex flex-col gap-3">
         <h1 className="text-5xl font-semibold text-balance">
           What are you rehearsing today?
@@ -34,5 +52,3 @@ function App() {
     </main>
   );
 }
-
-export default App;

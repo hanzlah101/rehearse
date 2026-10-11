@@ -36,5 +36,23 @@ export default defineConfig({
       },
     ],
     "typescript/consistent-type-definitions": ["error", "type"],
+    // TanStack Router: `throw redirect(...)` / `throw notFound()`.
+    "typescript/only-throw-error": [
+      "error",
+      {
+        allow: [
+          {
+            from: "package",
+            name: "Redirect",
+            package: "@tanstack/router-core",
+          },
+          {
+            from: "package",
+            name: "NotFoundError",
+            package: "@tanstack/router-core",
+          },
+        ],
+      },
+    ],
   },
 });
