@@ -33,13 +33,13 @@ Rehearse helps college students speak English fluently. A student is given (or t
 
 ### 2.1 Topic selection
 
-**Decision:** the system offers a topic by default; the student can shuffle or type their own.
+**Decision:** the app suggests a topic by default; the student can pick another or type their own. Topics are plain titles (no sets or categories).
 
 | Source | How it works | Why |
 | --- | --- | --- |
-| **Topic sets (default)** | Curated lists we maintain, grouped by subject and level (e.g. "C++ Basics", "OOP", "Data Structures", "General Speaking"). The app picks a random topic from the student's selected set, skipping recently used ones. | Zero effort to start; topics match what students study. |
-| **Shuffle** | Picks another topic from the same set. | Escape hatch without typing. |
-| **Custom topic** | Student types any topic (e.g. "Pointers vs references in C++"). | Practise for a real class or presentation. |
+| **Shared topics (default)** | Titles we maintain in Postgres with `student_id` null, offered to every student. The app suggests a random one. | Zero effort to start; topics match what students study. |
+| **Pick another** | "Change topic" lists every topic the student can see. | Escape hatch without typing. |
+| **Custom topic** | Student types any title (e.g. "Pointers vs references in C++"). It is saved on the server with their `student_id`, so it is listed for them next time (and later used to generate key points with Groq). A title that matches a visible topic, ignoring case, reuses that topic instead. | Practise for a real class or presentation. |
 
 Not offered: a blank "just speak" mode. Without a topic students ramble or stop, and attempts can't be compared.
 
@@ -73,7 +73,7 @@ The student speaks from their own head, so nothing is shown to read from before 
 
 Caching:
 
-- Key points for topic-set topics are generated **once on the server** per topic and target, cached in Postgres, shared by all students (fair comparison, no repeated LLM cost).
+- Key points for shared topics are generated **once on the server** per topic and target, cached in Postgres, shared by all students (fair comparison, no repeated LLM cost).
 - Custom-topic key points are generated on demand and cached per student.
 
 ### 2.4 Session flow
@@ -434,10 +434,8 @@ Before loading any model the app checks free RAM; if too low it refuses with a c
 | --- | --- |
 | `students` | id, student_id (unique), name, password_hash, created_at |
 | `sessions` | id (token hash), student_id, expires_at, ip_address, user_agent |
-| `topic_sets` | id, name, subject, level, is_active |
-| `topics` | id, set_id, title, level |
-| `key_points` | id, topic_id or custom_topic_id, target_seconds, points (jsonb), model, created_at |
-| `custom_topics` | id, student_id, title, created_at |
+| `topics` | id, title, student_id (null = shared with everyone), created_at; title unique case-insensitively per scope |
+| `key_points` | id, topic_id, target_seconds, points (jsonb), model, created_at |
 | `llm_usage` | id, student_id, kind (key_points / language / content), tokens_in, tokens_out, created_at |
 | `attempt_summaries` (later, sync) | id, student_id, topic ref, score, subscores (jsonb), duration_ms, created_at |
 
@@ -445,7 +443,7 @@ Before loading any model the app checks free RAM; if too low it refuses with a c
 
 | Table | Key columns |
 | --- | --- |
-| `rehearsals` | id (UUID v7), topic ref, target_seconds, created_at, updated_at |
+| `rehearsals` | id (UUID v7), topic_id + title snapshot, target_seconds, created_at, updated_at |
 | `attempts` | id (UUID v7), rehearsal_id, key points snapshot (json), target_seconds, duration_ms, score, subscores (json), audio_path, created_at, updated_at |
 | `attempt_feedback` | attempt_id, metrics (json), fillers (json), repetition (json), language (json), content (json), model, offline (bool) |
 | `settings` | key, value |
@@ -463,10 +461,9 @@ All procedures declare their errors; validation failures return 422 with prettif
 | `auth.login` | student ID + password → bearer token | `AUTH_INVALID_CREDENTIALS` 401 |
 | `auth.session` | current student | 401 |
 | `auth.logout` | revoke token |  |
-| `topics.sets` | list active topic sets |  |
-| `topics.random` | random topic from a set (excluding recent ones) | `TOPIC_SET_NOT_FOUND` 404 |
+| `topics.list` | shared topics + the student's own (own first) |  |
+| `topics.create` | save a typed topic; returns the existing one for a known title | 422 on a title outside 3–120 characters |
 | `keyPoints.get` | key points for topic + target (generate and cache if missing) | `KEY_POINTS_UNAVAILABLE` 503 |
-| `keyPoints.custom` | key points for a custom topic | `TOPIC_TOO_LONG` 422 |
 | `feedback.language` | Call A | `FEEDBACK_RATE_LIMITED` 429 |
 | `feedback.content` | Call B | `FEEDBACK_RATE_LIMITED` 429 |
 
@@ -489,7 +486,7 @@ Initial per-student limits: 30 feedback attempts/day, 20 custom topics/day. Tuna
 
 | Failure | Behaviour |
 | --- | --- |
-| No internet / backend down | Topic sets cached locally from last sync; custom key points and feedback use local Qwen if downloaded; otherwise the attempt is saved and feedback runs when online |
+| No internet / backend down | Topics cached locally from last fetch; custom key points and feedback use local Qwen if downloaded; otherwise the attempt is saved and feedback runs when online |
 | Groq rate limit hit | Backend returns `FEEDBACK_RATE_LIMITED`; desktop offers local fallback or "try again later" |
 | Not enough RAM | Refuse to load the model with a clear message |
 | Transcription slower than real time | Switch to CrisperWhisper turbo for the rest of the session |
@@ -515,15 +512,7 @@ The report streams in: summary, fillers, repetition, pauses and pace appear firs
 
 ## 12. Topic library (initial)
 
-Owned by us; seeded via a script, editable later.
-
-| Set | Level | Examples |
-| --- | --- | --- |
-| General Speaking | 1 | My hometown · A teacher who influenced me · How I prepare for exams |
-| Programming Basics | 1–2 | Variables and data types · Conditional statements in C++ · Loops: for vs while |
-| OOP | 2 | Classes and objects · Inheritance · Encapsulation vs abstraction |
-| Data Structures | 2–3 | Arrays vs linked lists · How a stack works · When to use a hash map |
-| Opinion | 3 | Should attendance be mandatory? · AI tools in assignments · Online vs in-person classes |
+Owned by us; seeded with `bun run topics:seed` (idempotent, `apps/web/scripts/seed-topics.ts`), editable later. Plain titles, no sets, e.g. My hometown · A teacher who influenced me · Conditional statements in C++ · Loops: for vs while · Classes and objects · Arrays vs linked lists · How a stack works · Should attendance be mandatory? · AI tools in assignments.
 
 Target: 150–200 topics at launch, each broad enough to fill 10 minutes.
 
@@ -548,7 +537,7 @@ Target: 150–200 topics at launch, each broad enough to fill 10 minutes.
 ## 15. Milestones
 
 1. **Speech core (desktop):** chunked recording → whisper-server → Praat → metrics, fillers and repetition counts → local report sections 1, 3 (fillers/pauses only), 4, 5 (counts only), 6. Validate filler detection on 10 real clips.
-2. **Topics + key points:** topic sets in Postgres, `topics.random`, `keyPoints.get` with caching; topic card, length picker, speak screen with stall nudge.
+2. **Topics + key points:** topics in Postgres (`topics.list`, `topics.create`), `keyPoints.get` with caching; topic card, length picker, speak screen with stall nudge.
 3. **Language feedback:** `feedback.language` via Groq; full report sections 1–11; score formula; retry with deltas.
 4. **Content check:** `feedback.content`; collapsed content section.
 5. **Auth on desktop:** bearer-token login, keychain storage, per-student rate limits.
@@ -560,7 +549,7 @@ Target: 150–200 topics at launch, each broad enough to fill 10 minutes.
 
 ## 16. Open questions
 
-1. Who maintains topic sets long term: only us, or teachers per course?
+1. Who maintains shared topics long term: only us, or teachers per course?
 2. Should teachers eventually see class progress, or is the tool student-only?
 3. Paid Groq tier from day one, or start on the free tier with strict limits?
 4. Keep CrisperWhisper large by default on slow CPU-only machines, or start with turbo there?
