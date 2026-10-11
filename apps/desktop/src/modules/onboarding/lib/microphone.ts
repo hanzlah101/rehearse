@@ -8,14 +8,40 @@ const GRANTED_KEY = "microphone-granted";
 
 export type MicrophoneAccess = "granted" | "denied" | "prompt";
 
+// Storage can throw (disabled, quota). The in-memory copy keeps the grant for
+// this run either way, so the guard doesn't bounce back to onboarding.
+let isGrantedThisRun = false;
+
+function isRemembered() {
+  try {
+    return isGrantedThisRun || localStorage.getItem(GRANTED_KEY) === "true";
+  } catch {
+    return isGrantedThisRun;
+  }
+}
+
+function remember(isGranted: boolean) {
+  isGrantedThisRun = isGranted;
+
+  try {
+    if (isGranted) {
+      localStorage.setItem(GRANTED_KEY, "true");
+    } else {
+      localStorage.removeItem(GRANTED_KEY);
+    }
+  } catch {
+    // Remembered for this run only; the next launch asks again.
+  }
+}
+
 export async function getMicrophoneAccess(): Promise<MicrophoneAccess> {
-  const remembered = localStorage.getItem(GRANTED_KEY) === "true";
+  const remembered = isRemembered();
 
   try {
     const { state } = await navigator.permissions.query({ name: "microphone" });
 
     if (state === "denied") {
-      localStorage.removeItem(GRANTED_KEY);
+      remember(false);
     }
 
     return state === "prompt" && remembered ? "granted" : state;
@@ -29,23 +55,25 @@ export type MicrophoneRequest = "granted" | "denied" | "no-device";
 
 // Opens the mic once (showing the OS prompt the first time) and releases it.
 export async function requestMicrophone(): Promise<MicrophoneRequest> {
+  let stream: MediaStream;
+
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-    for (const track of stream.getTracks()) {
-      track.stop();
-    }
-    localStorage.setItem(GRANTED_KEY, "true");
-
-    return "granted";
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   } catch (error) {
-    localStorage.removeItem(GRANTED_KEY);
+    remember(false);
 
     return error instanceof DOMException &&
       (error.name === "NotFoundError" || error.name === "OverconstrainedError")
       ? "no-device"
       : "denied";
   }
+
+  for (const track of stream.getTracks()) {
+    track.stop();
+  }
+  remember(true);
+
+  return "granted";
 }
 
 // The OS page where the student can turn the mic back on, if this platform has
