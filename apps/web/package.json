@@ -30,6 +30,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@clack/prompts": "^1.8.1",
     "@tanstack/router-cli": "^1.132.0",
     "@types/node": "^22.10.2",
     "@types/react": "^19.2.0",
