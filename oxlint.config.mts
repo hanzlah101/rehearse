@@ -7,6 +7,25 @@ export default defineConfig({
   extends: [core, react, shadcn],
   ignorePatterns: core.ignorePatterns,
   jsPlugins: shadcn.jsPlugins,
+  overrides: [
+    {
+      files: ["apps/desktop/src/**"],
+      rules: {
+        "no-restricted-imports": [
+          "error",
+          {
+            patterns: [
+              {
+                group: ["@/server/**", "@/env"],
+                message:
+                  "Import web sources with @server/* or @env; @/server and @/env exist only for the web files' own imports.",
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ],
   rules: {
     "func-style": "off",
     "react/function-component-definition": [
@@ -17,5 +36,23 @@ export default defineConfig({
       },
     ],
     "typescript/consistent-type-definitions": ["error", "type"],
+    // TanStack Router: `throw redirect(...)` / `throw notFound()`.
+    "typescript/only-throw-error": [
+      "error",
+      {
+        allow: [
+          {
+            from: "package",
+            name: "Redirect",
+            package: "@tanstack/router-core",
+          },
+          {
+            from: "package",
+            name: "NotFoundError",
+            package: "@tanstack/router-core",
+          },
+        ],
+      },
+    ],
   },
 });

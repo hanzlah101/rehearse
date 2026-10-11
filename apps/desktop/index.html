@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rehearse</title>
+    <!-- --background from src/index.css, painted before CSS/JS load so launch doesn't flash white. -->
+    <style>
+      html {
+        background: oklch(0.985 0.002 260);
+      }
+      @media (prefers-color-scheme: dark) {
+        html {
+          background: oklch(0.16 0 0);
+        }
+      }
+    </style>
   </head>
 
   <body>

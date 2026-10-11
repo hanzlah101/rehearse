@@ -4,7 +4,7 @@ import { BatchLinkPlugin } from "@orpc/client/plugins";
 import { createRouterClient } from "@orpc/server";
 import type { RouterClient } from "@orpc/server";
 import { createIsomorphicFn } from "@tanstack/react-start";
-import { getRequestHeaders } from "@tanstack/react-start/server";
+import { getRequestHeaders, getRequestIP } from "@tanstack/react-start/server";
 
 import { router } from "@/server/router";
 import type { AppRouter } from "@/server/router";
@@ -12,7 +12,10 @@ import type { AppRouter } from "@/server/router";
 export const api = createIsomorphicFn()
   .server(() =>
     createRouterClient(router, {
-      context: () => ({ headers: getRequestHeaders() }),
+      context: () => ({
+        clientIp: getRequestIP({ xForwardedFor: true }) ?? null,
+        headers: getRequestHeaders(),
+      }),
     })
   )
   .client(() => {

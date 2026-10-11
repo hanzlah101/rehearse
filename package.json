@@ -6,6 +6,7 @@
   ],
   "scripts": {
     "dev:web": "bun --filter web dev",
+    "student:add": "bun run --cwd apps/web student:add",
     "dev:desktop": "bun --filter desktop tauri dev",
     "build:web": "bun --filter web build",
     "build:desktop": "bun --filter desktop tauri build",

@@ -1,8 +1,10 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2022",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    // node: the web server sources behind AppRouter use node: modules.
+    "types": ["node", "vite/client"],
     "module": "ESNext",
     "skipLibCheck": true,
 
@@ -14,7 +16,14 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      // Web sources for desktop code: AppRouter types and Zod schemas.
+      "@env": ["../web/src/env.ts"],
+      "@server/*": ["../web/src/server/*"],
+      // Only for the web files' own imports (resolved with these paths when
+      // desktop typechecks AppRouter). Desktop code uses @env / @server/*.
+      "@/env": ["../web/src/env.ts"],
+      "@/server/*": ["../web/src/server/*"]
     },
 
     /* Linting */
