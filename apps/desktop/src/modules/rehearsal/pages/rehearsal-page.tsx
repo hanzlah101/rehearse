@@ -1,4 +1,4 @@
-import { IconChevronRight, IconMicrophoneFilled } from "@tabler/icons-react";
+import { IconMicrophoneFilled } from "@tabler/icons-react";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
@@ -29,15 +29,11 @@ export function RehearsalPage() {
       {/* Page toolbar: full panel width, stays put while scrolling, so the
           action always has the same corner and stays in reach. */}
       <div className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-card/85 px-4 backdrop-blur-md md:px-6">
-        <p className="flex min-w-0 items-center gap-1.5 text-sm">
-          <span className="shrink-0 text-muted-foreground">
-            {rehearsal.set}
-          </span>
-          <IconChevronRight
-            aria-hidden="true"
-            className="size-3.5 shrink-0 text-muted-foreground"
-          />
-          <span className="truncate font-medium">{rehearsal.topic}</span>
+        <p className="min-w-0 truncate text-sm text-muted-foreground">
+          {formatNumber(rehearsal.minutes)}-minute talk ·{" "}
+          {formatNumber(attempts.length)}{" "}
+          {attempts.length === 1 ? "attempt" : "attempts"} · best{" "}
+          {formatPercent(best)}
         </p>
         <Button
           className="shrink-0"
@@ -46,7 +42,6 @@ export function RehearsalPage() {
               search: {
                 minutes: rehearsal.minutes,
                 rehearsal: rehearsal.id,
-                set: rehearsal.set,
                 topic: rehearsal.topic,
               },
               to: "/session",
@@ -63,13 +58,6 @@ export function RehearsalPage() {
           <h1 className="max-w-xl text-4xl leading-none font-semibold text-balance md:text-5xl">
             {rehearsal.topic}
           </h1>
-          <p className="text-pretty text-muted-foreground">
-            {formatNumber(rehearsal.minutes)}-minute talk.{" "}
-            {formatNumber(attempts.length)}{" "}
-            {attempts.length === 1 ? "attempt" : "attempts"}, best{" "}
-            {formatPercent(best)}.
-            {attempts.length === 1 && " Try again to start your trend."}
-          </p>
         </header>
 
         <ScoreTrend
