@@ -183,9 +183,7 @@ function FormAlert({
             mutation.reset();
           }}
           size="icon-xs"
-          variant="ghost"
-          // Tint ghost's neutral hover so it reads as part of the red alert.
-          className="text-destructive hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/20"
+          variant="destructive-ghost"
         >
           <IconX />
         </Button>

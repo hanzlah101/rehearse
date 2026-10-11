@@ -36,6 +36,8 @@ const buttonVariants = cva(
           "border-0 bg-primary bg-linear-to-b from-white/12 to-transparent text-primary-foreground shadow-xs-skeuomorphic before:pointer-events-none before:absolute before:inset-px before:rounded-[inherit] before:border before:border-white/12 before:mask-b-from-0% hover:bg-[color-mix(in_oklch,var(--primary),black_12%)]",
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:outline-destructive dark:bg-destructive/20 dark:hover:bg-destructive/30",
+        "destructive-ghost":
+          "text-destructive hover:bg-destructive/10 focus-visible:outline-destructive aria-expanded:bg-destructive/10 dark:hover:bg-destructive/20 dark:aria-expanded:bg-destructive/20",
         ghost:
           "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
