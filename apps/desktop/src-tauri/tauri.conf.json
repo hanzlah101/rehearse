@@ -22,9 +22,7 @@
         "hiddenTitle": true
       }
     ],
-    "security": {
-      "csp": null
-    }
+    "security": { "csp": null }
   },
   "bundle": {
     "active": true,
@@ -35,6 +33,7 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "macOS": { "entitlements": "./Entitlements.plist" }
   }
 }
