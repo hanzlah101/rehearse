@@ -1,4 +1,6 @@
+import { IconAlertCircleFilled, IconX } from "@tabler/icons-react";
 import { useSelector } from "@tanstack/react-form";
+import type { UseMutationResult } from "@tanstack/react-query";
 import { cn } from "cn";
 import * as React from "react";
 import {
@@ -14,9 +16,11 @@ import type {
   TextFieldProps,
 } from "react-aria-components";
 
+import { Alert, AlertAction, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useFieldContext, useFormContext } from "@/hooks/use-form";
+import { getErrorMessage } from "@/modules/common/lib/errors";
 
 // True while the mutation behind the form is in flight. onSubmit calls
 // `mutate` (not `mutateAsync`), so the form's own isSubmitting ends as soon as
@@ -150,6 +154,46 @@ function FormError({ className, ...props }: Omit<FieldErrorProps, "children">) {
   );
 }
 
+// The submit mutation's failure, shown at the top of the form until it's
+// dismissed (reset) or the next submit starts a new attempt.
+function FormAlert({
+  className,
+  mutation,
+  ...props
+}: Omit<React.ComponentProps<typeof Alert>, "children" | "variant"> & {
+  mutation: Pick<UseMutationResult, "error" | "reset">;
+}) {
+  if (mutation.error === null) {
+    return null;
+  }
+
+  return (
+    <Alert
+      data-slot="form-alert"
+      variant="destructive"
+      className={className}
+      {...props}
+    >
+      <IconAlertCircleFilled />
+      <AlertTitle>{getErrorMessage(mutation.error)}</AlertTitle>
+      <AlertAction>
+        <Button
+          aria-label="Dismiss"
+          onPress={() => {
+            mutation.reset();
+          }}
+          size="icon-xs"
+          variant="ghost"
+          // Tint ghost's neutral hover so it reads as part of the red alert.
+          className="text-destructive hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/20"
+        >
+          <IconX />
+        </Button>
+      </AlertAction>
+    </Alert>
+  );
+}
+
 function FormSubmit(props: React.ComponentProps<typeof Button>) {
   const form = useFormContext();
   const isSubmitting = useSelector(form.store, (state) => state.isSubmitting);
@@ -160,4 +204,12 @@ function FormSubmit(props: React.ComponentProps<typeof Button>) {
   );
 }
 
-export { Form, FormField, FormLabel, FormDescription, FormError, FormSubmit };
+export {
+  Form,
+  FormAlert,
+  FormField,
+  FormLabel,
+  FormDescription,
+  FormError,
+  FormSubmit,
+};

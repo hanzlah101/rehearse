@@ -3,6 +3,7 @@ import { revalidateLogic } from "@tanstack/react-form";
 
 import {
   Form,
+  FormAlert,
   FormError,
   FormField,
   FormLabel,
@@ -31,6 +32,8 @@ export function LoginForm() {
   return (
     <form.AppForm>
       <Form isPending={login.isPending}>
+        <FormAlert mutation={login} />
+
         <form.AppField name="studentId">
           {() => (
             <FormField autoComplete="username">
