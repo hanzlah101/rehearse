@@ -49,7 +49,7 @@ export function PasswordField(
           aria-label={isVisible ? "Hide password" : "Show password"}
           onPress={toggleVisibility}
           preventFocusOnPress
-          size="icon-xs"
+          size="icon-sm"
         >
           {isVisible ? <IconEyeClosed /> : <IconEyeFilled />}
         </InputGroupButton>
