@@ -109,13 +109,12 @@ export function ScoreTrend({
       scales: {
         x: {
           axis: { ticks: { size: 0 } },
-          // No padding: the line runs edge to edge, and the automatic margins
-          // still make room for the end labels.
-          scale: () => scalePoint().padding(0),
+          scale: () => scalePoint().padding(0.5),
         },
         y: {
-          // Every point carries its value, so no y axis: just faint gridlines.
-          axis: false,
+          axis: {
+            ticks: { format: (value: number) => formatPercent(value), size: 0 },
+          },
           grid: true,
           scale: scaleLinear().domain([floor, 100]),
         },

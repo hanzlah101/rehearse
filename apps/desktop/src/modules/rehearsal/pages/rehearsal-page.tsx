@@ -1,4 +1,4 @@
-import { IconMicrophoneFilled } from "@tabler/icons-react";
+import { IconChevronRight, IconMicrophoneFilled } from "@tabler/icons-react";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,8 @@ import { ScoreTrend } from "@/modules/rehearsal/components/score-trend";
 const routeApi = getRouteApi("/(private)/(app)/rehearsals/$id");
 
 // One rehearsal thread: every attempt on a topic, the score trend that picks
-// between them, and the picked attempt's guide. "Try again" starts a session
-// on the same topic and length.
+// between them, and the picked attempt's guide. "Try again" (in the sticky
+// toolbar) starts a session on the same topic and length.
 export function RehearsalPage() {
   const rehearsal = routeApi.useLoaderData();
   const search = routeApi.useSearch();
@@ -26,39 +26,50 @@ export function RehearsalPage() {
       className="flex min-h-0 flex-1 flex-col overflow-y-auto"
       key={rehearsal.id}
     >
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-12 px-6 py-12 md:px-10">
+      {/* Page toolbar: full panel width, stays put while scrolling, so the
+          action always has the same corner and stays in reach. */}
+      <div className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-card/85 px-4 backdrop-blur-md md:px-6">
+        <p className="flex min-w-0 items-center gap-1.5 text-sm">
+          <span className="shrink-0 text-muted-foreground">
+            {rehearsal.set}
+          </span>
+          <IconChevronRight
+            aria-hidden="true"
+            className="size-3.5 shrink-0 text-muted-foreground"
+          />
+          <span className="truncate font-medium">{rehearsal.topic}</span>
+        </p>
+        <Button
+          className="shrink-0"
+          onPress={() => {
+            void navigate({
+              search: {
+                minutes: rehearsal.minutes,
+                rehearsal: rehearsal.id,
+                set: rehearsal.set,
+                topic: rehearsal.topic,
+              },
+              to: "/session",
+            });
+          }}
+        >
+          <IconMicrophoneFilled data-icon="inline-start" />
+          Try again
+        </Button>
+      </div>
+
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-12 px-6 py-10 md:px-10">
         <header className="flex flex-col gap-4">
-          <p className="text-sm font-medium text-primary">{rehearsal.set}</p>
           <h1 className="max-w-xl text-4xl leading-none font-semibold text-balance md:text-5xl">
             {rehearsal.topic}
           </h1>
-          {/* The action shares a row with the summary, under the title, so it
-              sits in the same place whatever the title's length. */}
-          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-            <p className="text-pretty text-muted-foreground">
-              {formatNumber(rehearsal.minutes)}-minute talk.{" "}
-              {formatNumber(attempts.length)}{" "}
-              {attempts.length === 1 ? "attempt" : "attempts"}, best{" "}
-              {formatPercent(best)}.
-              {attempts.length === 1 && " Try again to start your trend."}
-            </p>
-            <Button
-              onPress={() => {
-                void navigate({
-                  search: {
-                    minutes: rehearsal.minutes,
-                    rehearsal: rehearsal.id,
-                    set: rehearsal.set,
-                    topic: rehearsal.topic,
-                  },
-                  to: "/session",
-                });
-              }}
-            >
-              <IconMicrophoneFilled data-icon="inline-start" />
-              Try again
-            </Button>
-          </div>
+          <p className="text-pretty text-muted-foreground">
+            {formatNumber(rehearsal.minutes)}-minute talk.{" "}
+            {formatNumber(attempts.length)}{" "}
+            {attempts.length === 1 ? "attempt" : "attempts"}, best{" "}
+            {formatPercent(best)}.
+            {attempts.length === 1 && " Try again to start your trend."}
+          </p>
         </header>
 
         <ScoreTrend
