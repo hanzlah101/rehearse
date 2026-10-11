@@ -51,6 +51,7 @@ const buttonVariants = cva(
 function Button({
   children,
   className,
+  isDisabled = false,
   isLoading = false,
   variant = "default",
   size = "default",
@@ -71,6 +72,7 @@ function Button({
       data-variant={variant}
       data-size={size}
       className={cn(buttonVariants({ className, size, variant }))}
+      isDisabled={isDisabled || isLoading}
       isPending={isLoading}
       {...props}
     >
