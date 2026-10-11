@@ -3,7 +3,6 @@ import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 
 import { Toaster } from "@/components/ui/sonner";
 import { sessionQueryOptions } from "@/modules/auth/queries/session";
-import { TitleBar } from "@/modules/common/components/title-bar";
 import { ErrorPage } from "@/modules/common/pages/error-page";
 import { SplashPage } from "@/modules/common/pages/splash-page";
 
@@ -14,8 +13,7 @@ export type RouterContext = {
 function RootLayout() {
   return (
     <>
-      <div className="flex min-h-svh flex-col">
-        <TitleBar />
+      <div className="flex h-svh flex-col">
         <Outlet />
       </div>
       <Toaster />
