@@ -1,8 +1,12 @@
+import { IconLoader2 } from "@tabler/icons-react";
 import { cva } from "class-variance-authority";
 import type { VariantProps } from "class-variance-authority";
 import { cn } from "cn";
 import type * as React from "react";
-import { Button as ButtonPrimitive } from "react-aria-components";
+import {
+  Button as ButtonPrimitive,
+  composeRenderProps,
+} from "react-aria-components";
 import type { ButtonProps as ButtonPrimitiveProps } from "react-aria-components";
 
 const buttonVariants = cva(
@@ -43,24 +47,53 @@ const buttonVariants = cva(
   }
 );
 
+// isLoading = React Aria's isPending (blocks presses, announces progress)
+// plus a spinner: it replaces the icon on icon buttons, leads the label otherwise.
 function Button({
+  children,
   className,
+  isLoading = false,
   variant = "default",
   size = "default",
   ...props
-}: Omit<ButtonPrimitiveProps, "className"> &
+}: Omit<ButtonPrimitiveProps, "className" | "isPending"> &
   React.RefAttributes<HTMLButtonElement> &
   VariantProps<typeof buttonVariants> & {
     className?: string;
+    isLoading?: boolean;
   }) {
+  const isIcon = size?.startsWith("icon") === true;
+  const spinner = (
+    <IconLoader2
+      className="animate-spin"
+      data-icon={isIcon ? undefined : "inline-start"}
+    />
+  );
+
   return (
     <ButtonPrimitive
       data-slot="button"
       data-variant={variant}
       data-size={size}
       className={cn(buttonVariants({ className, size, variant }))}
+      isPending={isLoading}
       {...props}
-    />
+    >
+      {composeRenderProps(children, (child): React.ReactNode => {
+        if (!isLoading) {
+          return child;
+        }
+
+        return isIcon ? (
+          spinner
+        ) : (
+          <>
+            {spinner}
+            {child}
+          </>
+        );
+      })}
+    </ButtonPrimitive>
   );
 }
 
