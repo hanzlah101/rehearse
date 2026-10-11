@@ -4,7 +4,8 @@
     "useDefineForClassFields": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     // node: the web server sources behind AppRouter use node: modules.
-    "types": ["node", "vite/client"],
+    // bun: unit tests (`bun test`) import from bun:test.
+    "types": ["bun", "node", "vite/client"],
     "module": "ESNext",
     "skipLibCheck": true,
 

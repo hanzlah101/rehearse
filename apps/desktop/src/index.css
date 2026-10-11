@@ -61,7 +61,7 @@
     0 1px 2px oklch(0.19 0.015 260 / 0.07);
 
   /* Spinner spokes: each fades out, staggered so the bright one sweeps round. */
-  --animate-spinner-spoke: spinner-spoke 0.8s linear infinite;
+  --animate-spinner-spoke: spinner-spoke 1.2s linear infinite;
 
   @keyframes spinner-spoke {
     from {
@@ -155,6 +155,12 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* A desktop window never scrolls as a whole: pages scroll inside their own
+     panels, and nothing stray can stretch the document. */
+  html,
+  body {
+    @apply h-full overflow-hidden overscroll-none;
+  }
   body {
     @apply bg-background text-foreground antialiased;
   }
@@ -174,5 +180,33 @@
   h2,
   h3 {
     @apply font-heading tracking-tight;
+  }
+}
+
+/* Text with a light sweeping across it: the step that is working right now. */
+@utility text-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--color-muted-foreground) 0%,
+    var(--color-foreground) 50%,
+    var(--color-muted-foreground) 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  color: transparent;
+  animation: text-shimmer 2s linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    color: var(--color-foreground);
+  }
+}
+
+@keyframes text-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
   }
 }

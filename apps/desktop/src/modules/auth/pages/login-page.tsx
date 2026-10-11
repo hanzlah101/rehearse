@@ -5,7 +5,12 @@ import { LoginForm } from "@/modules/auth/components/login-form";
 
 export function LoginPage() {
   return (
-    <main className="flex flex-1 lg:grid lg:grid-cols-2">
+    <main className="relative flex min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-2">
+      {/* Window drag handle along the top (macOS overlay title bar). */}
+      <div
+        data-tauri-drag-region
+        className="absolute inset-x-0 top-0 z-10 h-12"
+      />
       <figure className="relative hidden overflow-hidden lg:block">
         <img
           src={loginLight}
