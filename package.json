@@ -13,7 +13,8 @@
     "typecheck": "bun --filter '*' typecheck",
     "lint": "ultracite check --type-aware",
     "format": "ultracite fix --type-aware",
-    "dev": "mprocs"
+    "dev": "mprocs",
+    "topics:seed": "bun run --cwd apps/web topics:seed"
   },
   "devDependencies": {
     "@shadcn/lint": "^0.2.0",

@@ -39,7 +39,6 @@ export type Rehearsal = {
   id: string;
   latest: Attempt;
   minutes: number;
-  set: string;
   topic: string;
 };
 
@@ -62,7 +61,6 @@ type Run = Pick<Attempt, "date" | "score" | "transcript" | "wpm"> & {
 function rehearsal(
   id: string,
   topic: string,
-  set: string,
   minutes: number,
   points: string[],
   better: string,
@@ -108,7 +106,6 @@ function rehearsal(
     id,
     latest: rest.at(-1) ?? first,
     minutes,
-    set,
     topic,
   };
 }
@@ -124,7 +121,6 @@ export const REHEARSAL_GROUPS: { label: string; rehearsals: Rehearsal[] }[] = [
       rehearsal(
         "conditionals",
         "Conditional statements in C++",
-        "Programming Basics",
         7,
         [
           "What a condition is",
@@ -173,7 +169,6 @@ For more than two cases, we chain else if. Take a grade: above ninety is an A, a
       rehearsal(
         "loops",
         "Loops: for vs while",
-        "Programming Basics",
         4,
         [
           "What a loop is",
@@ -202,7 +197,6 @@ For more than two cases, we chain else if. Take a grade: above ninety is an A, a
       rehearsal(
         "classes",
         "Classes and objects",
-        "OOP",
         7,
         [
           "Class as a blueprint",
@@ -235,7 +229,6 @@ For more than two cases, we chain else if. Take a grade: above ninety is an A, a
       rehearsal(
         "hometown",
         "My hometown",
-        "General Speaking",
         1,
         ["Where it is", "What it’s known for", "A personal memory"],
         `I'm from Multan, a city in the south of Punjab, <c:famous for its mangoes and its centuries-old shrines.> <p:1> <c:What I remember most is> the summer heat and buying mangoes with my father every June. It's a <c:warm, welcoming> place.`,
@@ -258,7 +251,6 @@ For more than two cases, we chain else if. Take a grade: above ninety is an A, a
       rehearsal(
         "stack",
         "How a stack works",
-        "Data Structures",
         4,
         [
           "Last in, first out",
@@ -290,7 +282,6 @@ For more than two cases, we chain else if. Take a grade: above ninety is an A, a
       rehearsal(
         "attendance",
         "Should attendance be mandatory?",
-        "Opinion",
         4,
         [
           "Your position",
@@ -314,7 +305,6 @@ For more than two cases, we chain else if. Take a grade: above ninety is an A, a
       rehearsal(
         "variables",
         "Variables and data types",
-        "Programming Basics",
         1,
         ["What a variable is", "Common data types", "Choosing the right type"],
         `A variable is a named place in memory that stores a value. Common types are int for whole numbers, double for decimals, and char for a single character. <p:0.5> You choose the type based on the data you store, so the compiler knows how much memory to <c:reserve and which operations are allowed.>`,
@@ -345,7 +335,6 @@ For more than two cases, we chain else if. Take a grade: above ninety is an A, a
       rehearsal(
         "inheritance",
         "Inheritance",
-        "OOP",
         4,
         [
           "Base and derived classes",
@@ -369,7 +358,6 @@ For more than two cases, we chain else if. Take a grade: above ninety is an A, a
       rehearsal(
         "teacher",
         "A teacher who influenced me",
-        "General Speaking",
         1,
         ["Who they were", "What they did", "How it changed you"],
         `My maths teacher in grade eight, Mr. Saleem, always explained things with real examples. <p:1> <c:He's the reason I enjoy problem solving, and the reason I chose computer science.>`,
@@ -387,7 +375,6 @@ For more than two cases, we chain else if. Take a grade: above ninety is an A, a
       rehearsal(
         "arrays-lists",
         "Arrays vs linked lists",
-        "Data Structures",
         7,
         [
           "Memory layout",

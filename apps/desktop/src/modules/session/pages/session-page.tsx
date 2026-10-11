@@ -35,7 +35,7 @@ function orbStateFor(phase: Phase, isPaused: boolean): OrbState {
 // Full-screen rehearsal: speak (starts right away) → analyse, with one orb that
 // changes state instead of remounting, so it flows between phases.
 export function SessionPage() {
-  const { minutes, rehearsal, set, topic } = routeApi.useSearch();
+  const { minutes, rehearsal, topic } = routeApi.useSearch();
   const navigate = useNavigate();
   const [phase, setPhase] = useState<Phase>("speak");
   const [isPaused, setIsPaused] = useState(false);
@@ -65,7 +65,6 @@ export function SessionPage() {
       <div data-tauri-drag-region className="h-12 shrink-0" />
       <div className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center gap-8 px-6 pb-12 text-center">
         <div className="flex flex-col items-center gap-2">
-          <p className="text-sm font-medium text-primary">{set}</p>
           <h1 className="text-3xl leading-tight font-semibold text-balance md:text-4xl">
             {topic}
           </h1>
