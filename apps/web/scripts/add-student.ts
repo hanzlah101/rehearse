@@ -6,6 +6,7 @@ import { cancel, intro, outro, password, spinner, text } from "@clack/prompts";
 import { db } from "@/server/db/client";
 import { students } from "@/server/db/schema";
 import { CREDENTIAL_MAX_LENGTH } from "@/server/modules/auth/auth.constants";
+import { loginInputSchema } from "@/server/modules/auth/auth.schemas";
 import { hashPassword } from "@/server/modules/auth/auth.service";
 
 function required(label: string) {
@@ -19,6 +20,15 @@ function required(label: string) {
     return trimmed.length > CREDENTIAL_MAX_LENGTH
       ? `${label} must be at most ${CREDENTIAL_MAX_LENGTH} characters.`
       : undefined;
+  };
+}
+
+// Student ID and password must pass the exact rules login applies (password
+// untrimmed), or the student could be saved with credentials that never log in.
+function matchesLogin(field: keyof typeof loginInputSchema.shape) {
+  return (value: string | undefined) => {
+    const result = loginInputSchema.shape[field].safeParse(value ?? "");
+    return result.success ? undefined : result.error.issues[0]?.message;
   };
 }
 
@@ -38,7 +48,7 @@ const studentId = ask(
   await text({
     message: "Student ID",
     placeholder: "STU-001",
-    validate: required("Student ID"),
+    validate: matchesLogin("studentId"),
   })
 ).trim();
 
@@ -53,7 +63,7 @@ const name = ask(
 const plainPassword = ask(
   await password({
     message: "Password",
-    validate: required("Password"),
+    validate: matchesLogin("password"),
   })
 );
 

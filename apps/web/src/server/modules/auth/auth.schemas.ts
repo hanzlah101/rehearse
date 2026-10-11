@@ -4,17 +4,17 @@ import { CREDENTIAL_MAX_LENGTH } from "@/server/modules/auth/auth.constants";
 
 export const loginInputSchema = z
   .object({
-    password: z
-      .string()
-      .min(1, { error: "Enter your password." })
-      .max(CREDENTIAL_MAX_LENGTH)
-      .meta({ examples: ["correct-horse-battery"] }),
     studentId: z
       .string()
       .trim()
       .min(1, { error: "Enter your student ID." })
       .max(CREDENTIAL_MAX_LENGTH)
       .meta({ examples: ["STU-001"] }),
+    password: z
+      .string()
+      .min(1, { error: "Enter your password." })
+      .max(CREDENTIAL_MAX_LENGTH)
+      .meta({ examples: ["correct-horse-battery"] }),
   })
   .meta({ id: "LoginInput" });
 
