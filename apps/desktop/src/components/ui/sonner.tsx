@@ -3,10 +3,11 @@ import {
   IconCircleCheckFilled,
   IconCircleXFilled,
   IconInfoCircleFilled,
-  IconLoader2,
 } from "@tabler/icons-react";
 import { Toaster as Sonner } from "sonner";
 import type { ToasterProps } from "sonner";
+
+import { Spinner } from "@/components/ui/spinner";
 
 function Toaster(props: ToasterProps) {
   return (
@@ -14,7 +15,7 @@ function Toaster(props: ToasterProps) {
       icons={{
         error: <IconCircleXFilled className="size-4" />,
         info: <IconInfoCircleFilled className="size-4" />,
-        loading: <IconLoader2 className="size-4 animate-spin" />,
+        loading: <Spinner className="size-4" />,
         success: <IconCircleCheckFilled className="size-4" />,
         warning: <IconAlertTriangleFilled className="size-4" />,
       }}

@@ -1,4 +1,3 @@
-import { IconLoader2 } from "@tabler/icons-react";
 import { cva } from "class-variance-authority";
 import type { VariantProps } from "class-variance-authority";
 import { cn } from "cn";
@@ -8,6 +7,8 @@ import {
   composeRenderProps,
 } from "react-aria-components";
 import type { ButtonProps as ButtonPrimitiveProps } from "react-aria-components";
+
+import { Spinner } from "@/components/ui/spinner";
 
 const buttonVariants = cva(
   "group/button relative inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-semibold whitespace-nowrap outline-hidden transition-[background-color,box-shadow,color,scale] duration-300 ease-out select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid disabled:pointer-events-none disabled:opacity-50 aria-invalid:outline-destructive data-pressed:not-aria-[haspopup]:scale-[0.97] motion-reduce:transition-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
@@ -47,8 +48,6 @@ const buttonVariants = cva(
   }
 );
 
-// isLoading = React Aria's isPending (blocks presses, announces progress)
-// plus a spinner: it replaces the icon on icon buttons, leads the label otherwise.
 function Button({
   children,
   className,
@@ -63,12 +62,8 @@ function Button({
     isLoading?: boolean;
   }) {
   const isIcon = size?.startsWith("icon") === true;
-  const spinner = (
-    <IconLoader2
-      className="animate-spin"
-      data-icon={isIcon ? undefined : "inline-start"}
-    />
-  );
+
+  const spinner = <Spinner data-icon={isIcon ? undefined : "inline-start"} />;
 
   return (
     <ButtonPrimitive
