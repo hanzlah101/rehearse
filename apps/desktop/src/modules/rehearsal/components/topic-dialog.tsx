@@ -1,5 +1,7 @@
+import { createTopicInputSchema } from "@server/modules/topics/topics.schemas";
+import type { Topic } from "@server/modules/topics/topics.schemas";
 import { IconPencilFilled } from "@tabler/icons-react";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import type * as React from "react";
 import { OverlayTriggerStateContext } from "react-aria-components";
 
@@ -13,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { FormAlert } from "@/components/ui/form";
 import {
   Questionnaire,
   QuestionnaireChoice,
@@ -20,66 +23,96 @@ import {
   QuestionnaireError,
   QuestionnaireInput,
   QuestionnaireItem,
-  QuestionnaireSubmit,
 } from "@/components/ui/questionnaire";
-import { CUSTOM_SET, TOPIC_SET } from "@/modules/rehearsal/lib/topics";
-import type { Topic } from "@/modules/rehearsal/lib/topics";
+import { useCreateTopic } from "@/modules/rehearsal/actions/create-topic";
 
-// Mounted only while the dialog is open, so it always starts from the topic
-// on screen; nothing changes until Done. Typing in the input answers with your
-// own topic instead of a listed one.
+// Mounted only while the dialog is open, so it always starts from the topic on
+// screen; nothing changes until Done. Picking a listed topic (or typing one
+// that matches a listed title) applies it at once; a new title is saved to the
+// server first, and the dialog stays open with an error if that fails.
 function TopicQuestionnaire({
   current,
   onSelect,
+  topics,
 }: {
-  current: Topic;
+  current: Topic | undefined;
   onSelect: (topic: Topic) => void;
+  topics: Topic[];
 }) {
   const dialog = useContext(OverlayTriggerStateContext);
-  const isCustom = current.set === CUSTOM_SET;
+  const createTopic = useCreateTopic();
+  const [inputError, setInputError] = useState<string | null>(null);
+
+  function apply(topic: Topic) {
+    onSelect(topic);
+    dialog?.close();
+  }
 
   function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const answer = new FormData(event.currentTarget).get("topic");
-    const title = typeof answer === "string" ? answer.trim() : "";
+    const value = typeof answer === "string" ? answer.trim() : "";
+    const listed =
+      topics.find((topic) => topic.id === value) ??
+      topics.find((topic) => topic.title.toLowerCase() === value.toLowerCase());
 
-    if (title === "") {
+    if (listed !== undefined) {
+      apply(listed);
       return;
     }
 
-    onSelect({
-      set: TOPIC_SET.topics.includes(title) ? TOPIC_SET.name : CUSTOM_SET,
-      title,
-    });
-    dialog?.close();
+    const parsed = createTopicInputSchema.safeParse({ title: value });
+    if (!parsed.success) {
+      setInputError(parsed.error.issues[0]?.message ?? null);
+      return;
+    }
+
+    setInputError(null);
+    createTopic.mutate(parsed.data, { onSuccess: apply });
   }
 
   return (
     <Questionnaire onSubmit={handleSubmit}>
+      <FormAlert mutation={createTopic} />
+
       <QuestionnaireItem aria-label="Topic" name="topic" required>
-        <QuestionnaireChoices>
-          {TOPIC_SET.topics.map((topic) => (
-            <QuestionnaireChoice
-              defaultChecked={!isCustom && topic === current.title}
-              key={topic}
-              value={topic}
-            >
-              {topic}
-            </QuestionnaireChoice>
-          ))}
-          <QuestionnaireInput
-            aria-label="Your own topic"
-            defaultValue={isCustom ? current.title : undefined}
-            maxLength={120}
-            placeholder="Or type your own topic…"
-          />
-        </QuestionnaireChoices>
+        {/* Scrolls edge to edge (out through the dialog's padding), so the
+            scrollbar sits at the dialog's side, not over the rows. shadcn's
+            scroll-fade-y fades whichever edge has more to scroll. */}
+        <div className="-mx-6 -my-1 max-h-80 scroll-fade-y overflow-y-auto px-6 py-1">
+          <QuestionnaireChoices>
+            {topics.map((topic) => (
+              <QuestionnaireChoice
+                defaultChecked={topic.id === current?.id}
+                key={topic.id}
+                value={topic.id}
+              >
+                {topic.title}
+              </QuestionnaireChoice>
+            ))}
+          </QuestionnaireChoices>
+        </div>
+        <QuestionnaireInput
+          aria-label="Your own topic"
+          maxLength={120}
+          onChange={() => {
+            setInputError(null);
+          }}
+          placeholder="Or type your own topic…"
+        />
+        {inputError !== null && (
+          <p className="text-sm text-destructive" role="alert">
+            {inputError}
+          </p>
+        )}
         <QuestionnaireError />
       </QuestionnaireItem>
 
       <DialogFooter>
-        <DialogClose>Cancel</DialogClose>
-        <QuestionnaireSubmit>Done</QuestionnaireSubmit>
+        <DialogClose isDisabled={createTopic.isPending}>Cancel</DialogClose>
+        <Button isLoading={createTopic.isPending} type="submit">
+          Done
+        </Button>
       </DialogFooter>
     </Questionnaire>
   );
@@ -88,24 +121,30 @@ function TopicQuestionnaire({
 export function TopicDialog({
   current,
   onSelect,
+  topics,
 }: {
-  current: Topic;
+  current: Topic | undefined;
   onSelect: (topic: Topic) => void;
+  topics: Topic[];
 }) {
   return (
     <DialogTrigger>
       <Button size="sm" variant="muted">
         <IconPencilFilled data-icon="inline-start" />
-        Change topic
+        {current === undefined ? "Choose a topic" : "Change topic"}
       </Button>
       <Dialog>
         <DialogHeader>
           <DialogTitle>Choose a topic</DialogTitle>
           <DialogDescription>
-            Pick one from {TOPIC_SET.name}, or type your own.
+            Pick one, or type your own. Topics you add are saved for next time.
           </DialogDescription>
         </DialogHeader>
-        <TopicQuestionnaire current={current} onSelect={onSelect} />
+        <TopicQuestionnaire
+          current={current}
+          onSelect={onSelect}
+          topics={topics}
+        />
       </Dialog>
     </DialogTrigger>
   );

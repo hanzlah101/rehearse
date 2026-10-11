@@ -1,18 +1,3 @@
-// ponytail: one hardcoded set until topic sets come from the API (PLAN §12).
-export const TOPIC_SET = {
-  name: "Programming Basics",
-  topics: [
-    "Variables and data types",
-    "Conditional statements in C++",
-    "Loops: for vs while",
-    "Functions and parameters",
-    "Arrays and indexing",
-    "Pointers vs references in C++",
-    "Recursion explained simply",
-    "How a compiler turns code into a program",
-  ],
-};
-
 // Talk lengths (PLAN §2.2).
 export const TARGET_LENGTHS = [
   { label: "Warm-up", minutes: 1 },
@@ -39,20 +24,7 @@ export function saveTargetLength(length: TargetLength) {
   localStorage.setItem(LENGTH_STORAGE_KEY, String(length.minutes));
 }
 
-// Shown in place of the set name for a topic the student typed.
-export const CUSTOM_SET = "Your topic";
-
-export type Topic = {
-  set: string;
-  title: string;
-};
-
-// A random topic from the set other than the current one.
-export function pickTopic(current?: string): Topic {
-  const topics = TOPIC_SET.topics.filter((topic) => topic !== current);
-
-  return {
-    set: TOPIC_SET.name,
-    title: topics[Math.floor(Math.random() * topics.length)],
-  };
+// A random topic to suggest, or undefined when there are none yet.
+export function pickTopic<T>(topics: readonly T[]): T | undefined {
+  return topics[Math.floor(Math.random() * topics.length)];
 }
