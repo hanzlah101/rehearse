@@ -9,3 +9,6 @@ procs:
     shell: bun run db:studio
     cwd: <CONFIG_DIR>/apps/web
     autostart: false
+  inngest:
+    shell: bun run inngest:dev
+    cwd: <CONFIG_DIR>/apps/web

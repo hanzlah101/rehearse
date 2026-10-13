@@ -14,7 +14,8 @@
     "lint": "ultracite check --type-aware",
     "format": "ultracite fix --type-aware",
     "dev": "mprocs",
-    "topics:seed": "bun run --cwd apps/web topics:seed"
+    "topics:seed": "bun run --cwd apps/web topics:seed",
+    "dev:inngest": "bun run --cwd apps/web inngest:dev"
   },
   "devDependencies": {
     "@shadcn/lint": "^0.2.0",
@@ -23,5 +24,8 @@
     "oxlint": "^1.87.0",
     "oxlint-tsgolint": "^7.0.2004",
     "ultracite": "7.12.4"
-  }
+  },
+  "trustedDependencies": [
+    "inngest-cli"
+  ]
 }
