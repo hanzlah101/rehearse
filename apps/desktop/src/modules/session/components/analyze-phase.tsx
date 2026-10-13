@@ -1,76 +1,119 @@
-import { IconCircleCheckFilled } from "@tabler/icons-react";
-import { cn } from "cn";
-import { useEffect, useEffectEvent, useState } from "react";
+import {
+  IconAlertCircleFilled,
+  IconArrowRight,
+  IconReload,
+  IconTrash,
+} from "@tabler/icons-react";
+import { useEffect, useEffectEvent } from "react";
 
-import { Spinner } from "@/components/ui/spinner";
-import { formatNumber } from "@/lib/format";
+import { Button } from "@/components/ui/button";
+import { formatDuration, formatNumber } from "@/lib/format";
+import {
+  AnalysisSteps,
+  stepsFor,
+} from "@/modules/analysis/components/analysis-steps";
+import type { Step } from "@/modules/analysis/components/analysis-steps";
+import { retryAnalysis } from "@/modules/analysis/lib/runner";
+import type { AnalysisProgress } from "@/modules/analysis/lib/runner";
+import { useAnalysis } from "@/modules/analysis/lib/use-analysis";
 
-// The analysis pipeline (PLAN §3), in the order it runs: what each step is
-// doing while it runs, and what it found once it's done.
-// ponytail: timings and findings are simulated until the pipeline exists;
-// drive `step` and `done` from its progress events then.
-const STEPS = [
-  {
-    doing: "Turning the end of your talk into text",
-    done: "6:48 of speech, 912 words",
-    label: "Transcribing",
-    ms: 1400,
-  },
-  {
-    doing: "Measuring silences and how your voice rises and falls",
-    done: "Longest pause 2.1s, pitch varied well",
-    label: "Pauses and pitch",
-    ms: 1600,
-  },
-  {
-    doing: "Counting fillers and repeated phrases",
-    done: "5 fillers, 142 words a minute",
-    label: "Fillers and pace",
-    ms: 1000,
-  },
-  {
-    doing: "Reading every sentence for mistakes",
-    done: "3 grammar fixes, 2 stronger words",
-    label: "Grammar and vocabulary",
-    ms: 2400,
-  },
-  {
-    doing: "Comparing your talk with the topic’s key points",
-    done: "4 of 6 key points covered",
-    label: "What you explained",
-    ms: 1800,
-  },
-  {
-    doing: "Weighing fluency, pace, delivery and language",
-    done: "Score ready",
-    label: "Scoring",
-    ms: 800,
-  },
-];
+export type SaveState = "saving" | "saved" | "failed";
 
 // Pause on the finished state before opening the report.
 const DONE_MS = 900;
 
-// Chain of checkpoints on one connector line. Every row keeps its height from
-// the start, so nothing shifts as steps complete.
-export function AnalyzePhase({ onDone }: { onDone: () => void }) {
-  const [step, setStep] = useState(0);
-  const isDone = step >= STEPS.length;
+const WAITING: AnalysisProgress = {
+  error: null,
+  findings: {},
+  fraction: null,
+  isOffline: false,
+  serverStage: null,
+  stage: "queued",
+};
+
+// After the talk: saving the recording, then the real analysis as it runs
+// (transcription, Praat, metrics, the server's review, scoring). It opens the
+// report by itself when done; the student can also leave it running in the
+// background, and the sidebar keeps showing it.
+export function AnalyzePhase({
+  attemptId,
+  isDiscarding,
+  onBackground,
+  onDiscard,
+  onDone,
+  onRetrySave,
+  save,
+  spokenSeconds,
+}: {
+  attemptId: string;
+  isDiscarding: boolean;
+  onBackground: () => void;
+  onDiscard: () => void;
+  onDone: () => void;
+  onRetrySave: () => void;
+  save: SaveState;
+  spokenSeconds: number;
+}) {
+  const analysis = useAnalysis(save === "saved" ? attemptId : null);
+  const saveStep: Step = {
+    doing: "Writing your audio to this computer",
+    done: `Saved ${formatDuration(spokenSeconds)} of audio`,
+    label: "Saving your recording",
+  };
+  const live = stepsFor(analysis ?? WAITING, [saveStep]);
+  const { active, isDone, steps } =
+    save === "saved" ? live : { ...live, active: 0, isDone: false };
+  const error = analysis?.error ?? null;
   const finish = useEffectEvent(onDone);
 
   useEffect(() => {
-    const ms = STEPS[step]?.ms;
-    const id = setTimeout(() => {
-      if (ms === undefined) {
-        finish();
-      } else {
-        setStep((value) => value + 1);
-      }
-    }, ms ?? DONE_MS);
+    const id = isDone ? setTimeout(finish, DONE_MS) : undefined;
     return () => {
       clearTimeout(id);
     };
-  }, [step]);
+  }, [isDone]);
+
+  if (save === "failed") {
+    return (
+      <section
+        aria-label="Saving failed"
+        className="flex w-full max-w-sm flex-col items-center gap-6"
+      >
+        <div className="flex flex-col items-center gap-2">
+          <IconAlertCircleFilled className="size-6 text-destructive" />
+          <p className="font-heading text-xl font-semibold" role="alert">
+            Couldn’t save your recording
+          </p>
+          <p className="text-sm text-balance text-muted-foreground">
+            Your talk is still in memory. Try again, or discard it. Check that
+            your disk has free space.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button
+            isDisabled={isDiscarding}
+            onPress={onDiscard}
+            size="lg"
+            variant="destructive-muted"
+          >
+            <IconTrash data-icon="inline-start" />
+            Discard
+          </Button>
+          <Button isDisabled={isDiscarding} onPress={onRetrySave} size="lg">
+            <IconReload data-icon="inline-start" />
+            Try again
+          </Button>
+        </div>
+      </section>
+    );
+  }
+
+  let title = "Analysing your talk";
+  if (error !== null) {
+    title = "Analysis stopped";
+  } else if (isDone) {
+    title = "Report ready";
+  }
 
   return (
     <section
@@ -79,82 +122,44 @@ export function AnalyzePhase({ onDone }: { onDone: () => void }) {
     >
       <div className="flex items-baseline justify-between gap-4">
         <p aria-live="polite" className="font-heading text-xl font-semibold">
-          {isDone ? "Report ready" : "Analysing your talk"}
+          {title}
         </p>
         <span className="text-sm text-muted-foreground tabular-nums">
           {isDone
             ? "Opening…"
-            : `${formatNumber(step + 1)} of ${formatNumber(STEPS.length)}`}
+            : `${formatNumber(Math.min(active, steps.length - 1) + 1)} of ${formatNumber(steps.length)}`}
         </span>
       </div>
 
-      <ol className="flex flex-col">
-        {STEPS.map((item, index) => {
-          const isComplete = index < step;
-          const isActive = index === step;
-          const isLast = index === STEPS.length - 1;
+      <AnalysisSteps active={active} error={error} steps={steps} />
 
-          return (
-            <li
-              aria-current={isActive ? "step" : undefined}
-              className="flex gap-3"
-              key={item.label}
-            >
-              <div className="flex w-5 shrink-0 flex-col items-center">
-                <span className="flex size-5 shrink-0 items-center justify-center">
-                  {isComplete && (
-                    <IconCircleCheckFilled className="size-5 animate-in text-primary duration-300 zoom-in-50 motion-reduce:animate-none" />
-                  )}
-                  {isActive && (
-                    <span className="text-primary">
-                      <Spinner className="size-4" />
-                    </span>
-                  )}
-                  {!isComplete && !isActive && (
-                    <span className="size-2 rounded-full bg-border dark:bg-input" />
-                  )}
-                </span>
-                {!isLast && (
-                  <span
-                    className={cn(
-                      "my-1 w-px flex-1 transition-colors duration-500",
-                      isComplete ? "bg-primary/50" : "bg-border"
-                    )}
-                  />
-                )}
-              </div>
-
-              <div
-                className={cn(
-                  "flex min-w-0 flex-col gap-0.5",
-                  !isLast && "pb-4"
-                )}
-              >
-                <span
-                  className={cn(
-                    "text-sm leading-5 font-medium",
-                    isActive && "text-shimmer",
-                    !isComplete && !isActive && "text-muted-foreground/60"
-                  )}
-                >
-                  {item.label}
-                </span>
-                <span
-                  className={cn(
-                    "min-h-5 text-sm text-muted-foreground",
-                    (isComplete || isActive) &&
-                      "animate-in duration-300 fade-in-0 slide-in-from-top-1 motion-reduce:animate-none"
-                  )}
-                  key={isComplete ? "done" : "doing"}
-                >
-                  {isComplete && item.done}
-                  {isActive && item.doing}
-                </span>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+      {error === null ? (
+        !isDone &&
+        save === "saved" && (
+          <Button
+            className="self-center"
+            onPress={onBackground}
+            variant="ghost"
+          >
+            Continue in the background
+            <IconArrowRight data-icon="inline-end" />
+          </Button>
+        )
+      ) : (
+        <div className="flex items-center justify-center gap-3">
+          <Button onPress={onBackground} variant="outline">
+            Open rehearsal
+          </Button>
+          <Button
+            onPress={() => {
+              void retryAnalysis(attemptId);
+            }}
+          >
+            <IconReload data-icon="inline-start" />
+            Try again
+          </Button>
+        </div>
+      )}
     </section>
   );
 }

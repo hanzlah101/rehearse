@@ -1,8 +1,8 @@
 // Parses transcript markup into marks the report highlights. Markup:
 // <f:um> filler · <r:and then> repeated phrase · <g:said|fix|why> grammar ·
-// <v:said|better|why> vocabulary · <p:2.4> long pause in seconds (in a better
-// version: a deliberate pause to take) ·
-// <s:why> suggested pause · <c:text> changed in the better version.
+// <v:said|better|why> vocabulary · <p:2.4> long pause in seconds ·
+// <s:why> suggested pause. In a better version: <c:better|said|why> changed
+// wording · <p:0.5|why> a pause to take · <e:word|why> a word to stress.
 // A blank line starts a new paragraph.
 
 export type Mark =
@@ -11,13 +11,14 @@ export type Mark =
   | { kind: "repetition"; text: string }
   | { fix: string; kind: "grammar"; text: string; why: string }
   | { fix: string; kind: "vocabulary"; text: string; why: string }
-  | { kind: "pause"; seconds: number }
+  | { kind: "pause"; seconds: number; why: string }
   | { kind: "suggested"; why: string }
-  | { kind: "changed"; text: string };
+  | { kind: "changed"; said: string; text: string; why: string }
+  | { kind: "emphasis"; text: string; why: string };
 
 export type MarkKind = Mark["kind"];
 
-const TAG = /<(?<tag>[frgvpsc]):(?<body>[^>]*)>/gu;
+const TAG = /<(?<tag>[frgvpsce]):(?<body>[^>]*)>/gu;
 
 function toMark(tag: string, body: string): Mark {
   const [text = "", fix = "", why = ""] = body.split("|");
@@ -36,13 +37,16 @@ function toMark(tag: string, body: string): Mark {
       return { fix, kind: "vocabulary", text, why };
     }
     case "p": {
-      return { kind: "pause", seconds: Number(text) };
+      return { kind: "pause", seconds: Number(text), why: fix };
     }
     case "s": {
       return { kind: "suggested", why: text };
     }
+    case "e": {
+      return { kind: "emphasis", text, why: fix };
+    }
     default: {
-      return { kind: "changed", text };
+      return { kind: "changed", said: fix, text, why };
     }
   }
 }
