@@ -12,25 +12,25 @@ import { scaleLinear } from "@tanstack/charts/scales/linear";
 import { scalePoint } from "@tanstack/charts/scales/point";
 import { useMemo } from "react";
 
-import { formatPercent } from "@/lib/format";
+import { formatNumber, formatPercent } from "@/lib/format";
 import type { Attempt } from "@/modules/history/lib/rehearsals";
 
-// Score across attempts. Clicking a point (or focusing it with the arrow keys
-// and pressing Enter) picks that attempt.
-export function ScoreTrend({
-  attempts,
+// Only rendered with two or more scores: the y domain starts under the lowest
+// one, which doesn't exist without scores.
+function TrendChart({
   onSelect,
+  scored,
   selected,
 }: {
-  attempts: Attempt[];
   onSelect: (n: number) => void;
+  scored: { n: number; score: number }[];
   selected: number;
 }) {
   const definition = useMemo(() => {
-    const rows = attempts.map((attempt) => ({
-      label: `Attempt ${attempt.n}`,
-      n: attempt.n,
-      score: attempt.score,
+    const rows = scored.map(({ n, score }) => ({
+      label: `Attempt ${formatNumber(n)}`,
+      n,
+      score,
     }));
     const picked = rows.filter((row) => row.n === selected);
     // Start a little under the lowest score so small gains stay visible.
@@ -120,8 +120,42 @@ export function ScoreTrend({
         },
       },
     });
-  }, [attempts, selected]);
+  }, [scored, selected]);
 
+  return (
+    <Chart
+      ariaDescription="Score of each attempt on this topic, oldest first. Select a point to see that attempt."
+      ariaLabel="Score trend"
+      className="text-muted-foreground"
+      definition={definition}
+      height={240}
+      onSelect={(point) => {
+        if (point !== null) {
+          onSelect(point.datum.n);
+        }
+      }}
+    />
+  );
+}
+
+// Score across the analysed attempts. Clicking a point (or focusing it with the arrow keys
+// and pressing Enter) picks that attempt.
+export function ScoreTrend({
+  attempts,
+  onSelect,
+  selected,
+}: {
+  attempts: Attempt[];
+  onSelect: (n: number) => void;
+  selected: number;
+}) {
+  const scored = useMemo(
+    () =>
+      attempts.flatMap(({ n, score }) =>
+        score === null ? [] : [{ n, score }]
+      ),
+    [attempts]
+  );
   if (attempts.length === 1) {
     return (
       <div className="flex items-center gap-4 rounded-2xl border border-dashed p-5">
@@ -139,18 +173,10 @@ export function ScoreTrend({
     );
   }
 
-  return (
-    <Chart
-      ariaDescription="Score of each attempt on this topic, oldest first. Select a point to see that attempt."
-      ariaLabel="Score trend"
-      className="text-muted-foreground"
-      definition={definition}
-      height={240}
-      onSelect={(point) => {
-        if (point !== null) {
-          onSelect(point.datum.n);
-        }
-      }}
-    />
-  );
+  // Too few scores for a trend; the attempt picker still switches attempts.
+  if (scored.length < 2) {
+    return null;
+  }
+
+  return <TrendChart onSelect={onSelect} scored={scored} selected={selected} />;
 }

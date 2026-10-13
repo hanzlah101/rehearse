@@ -3,8 +3,14 @@ import {
   IconPlayerPauseFilled,
 } from "@tabler/icons-react";
 import { cn } from "cn";
+import type * as React from "react";
 import { useId, useState } from "react";
-import { Button, ToggleButton, ToggleButtonGroup } from "react-aria-components";
+import {
+  Button,
+  Pressable,
+  ToggleButton,
+  ToggleButtonGroup,
+} from "react-aria-components";
 import type { Key } from "react-aria-components";
 
 import {
@@ -17,7 +23,8 @@ import { formatNumber } from "@/lib/format";
 import { countOf } from "@/modules/rehearsal/lib/transcript";
 import type { Mark, MarkKind } from "@/modules/rehearsal/lib/transcript";
 
-type HighlightKind = Exclude<MarkKind, "text" | "changed">;
+// Marks of the transcript (the better version has its own: changed, emphasis).
+type HighlightKind = Exclude<MarkKind, "text" | "changed" | "emphasis">;
 
 // One look per category, shared by the legend swatch and the highlight.
 const CATEGORIES: {
@@ -189,7 +196,11 @@ function Highlight({
   mark: Mark;
   paragraphs: Mark[][];
 }) {
-  if (mark.kind === "text" || mark.kind === "changed") {
+  if (
+    mark.kind === "text" ||
+    mark.kind === "changed" ||
+    mark.kind === "emphasis"
+  ) {
     return mark.text;
   }
 
@@ -300,66 +311,174 @@ export function AnnotatedTranscript({ paragraphs }: { paragraphs: Mark[][] }) {
   );
 }
 
-// The same talk said better; changed phrases are tinted.
+// Changes and stresses can be whole sentences, so they're inline spans that
+// wrap like text (a button can't), tinted only around the words.
+const INLINE_CUE =
+  "cursor-default rounded-sm box-decoration-clone outline-hidden transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid";
+
+function InlineCue({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className: string;
+}) {
+  return (
+    <Pressable>
+      {/* oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- an inline trigger that wraps; a <button> can't */}
+      <span className={cn(INLINE_CUE, className)} role="button" tabIndex={0}>
+        {children}
+      </span>
+    </Pressable>
+  );
+}
+
+const PAUSE_CHIP =
+  "mx-0.5 inline-flex items-center gap-1 rounded-full bg-chart-2/15 px-1.5 align-middle text-xs leading-5 font-medium text-chart-2 tabular-nums ring-1 ring-chart-2/40 ring-inset";
+
+function seconds(value: number) {
+  return `${formatNumber(value)} ${value === 1 ? "second" : "seconds"}`;
+}
+
+// One cue of the better version: a pause to take, a word to stress, or
+// changed wording. Each explains itself on click.
+function Cue({ mark }: { mark: Mark }) {
+  if (mark.kind === "pause") {
+    return (
+      <PopoverTrigger>
+        <Button
+          className={cn(MARK_BASE, PAUSE_CHIP, "data-hovered:bg-chart-2/25")}
+        >
+          <IconPlayerPauseFilled aria-hidden="true" className="size-3" />
+          <span aria-hidden="true">{formatNumber(mark.seconds)}s</span>
+          <span className="sr-only">Pause {seconds(mark.seconds)}</span>
+        </Button>
+        <Popover>
+          <PopoverTitle>Pause for {seconds(mark.seconds)}</PopoverTitle>
+          {mark.why !== "" && (
+            <PopoverDescription>{mark.why}</PopoverDescription>
+          )}
+        </Popover>
+      </PopoverTrigger>
+    );
+  }
+
+  if (mark.kind === "emphasis") {
+    return (
+      <PopoverTrigger>
+        <InlineCue className="font-semibold text-foreground underline decoration-primary decoration-2 underline-offset-4 hover:bg-primary/10">
+          {mark.text}
+        </InlineCue>
+        <Popover>
+          <PopoverTitle>Stress “{mark.text}”</PopoverTitle>
+          {mark.why !== "" && (
+            <PopoverDescription>{mark.why}</PopoverDescription>
+          )}
+        </Popover>
+      </PopoverTrigger>
+    );
+  }
+
+  if (mark.kind === "changed") {
+    if (mark.said === "" && mark.why === "") {
+      return (
+        <mark className="rounded-sm bg-primary/10 box-decoration-clone px-0.5 text-foreground dark:bg-primary/20">
+          {mark.text}
+        </mark>
+      );
+    }
+    return (
+      <PopoverTrigger>
+        <InlineCue className="bg-primary/10 px-0.5 text-foreground underline decoration-primary/40 underline-offset-4 hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30">
+          {mark.text}
+        </InlineCue>
+        <Popover>
+          <PopoverTitle>Changed</PopoverTitle>
+          {mark.said !== "" && (
+            <p className="text-muted-foreground line-through decoration-destructive/60">
+              {mark.said}
+            </p>
+          )}
+          <p className="flex items-start gap-1.5 font-medium">
+            <IconArrowNarrowRight className="mt-0.5 size-4 shrink-0 text-primary" />
+            {mark.text}
+          </p>
+          {mark.why !== "" && (
+            <PopoverDescription>{mark.why}</PopoverDescription>
+          )}
+        </Popover>
+      </PopoverTrigger>
+    );
+  }
+
+  return "text" in mark ? mark.text : null;
+}
+
+// The same talk said better, as a script to read aloud: changed wording is
+// tinted, pause chips say where to stop and for how long, underlined words
+// are the ones to stress. Every cue explains itself on click.
 export function BetterVersion({ paragraphs }: { paragraphs: Mark[][] }) {
   const titleId = useId();
+  const marks = paragraphs.flat();
+  const pauses = marks.filter((mark) => mark.kind === "pause").length;
+  const stresses = marks.filter((mark) => mark.kind === "emphasis").length;
+  const changes = marks.filter((mark) => mark.kind === "changed").length;
 
   return (
     <section
       aria-labelledby={titleId}
       className="flex flex-col gap-5 rounded-2xl bg-primary/5 p-6 ring-1 ring-primary/15 ring-inset md:p-8 dark:bg-primary/10"
     >
-      <div className="flex flex-col gap-1">
-        <h3 id={titleId} className="text-lg font-semibold">
-          A better version
-        </h3>
-        <p className="text-sm text-pretty text-muted-foreground">
-          Same ideas, said more clearly. Tinted parts changed, and pause marks
-          show where to stop for a beat. Read it aloud once, then try again in
-          your own words.
-        </p>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1">
+          <h3 id={titleId} className="text-lg font-semibold">
+            A better version
+          </h3>
+          <p className="text-sm text-pretty text-muted-foreground">
+            Same ideas, said the way a confident speaker would. Read it aloud
+            following the cues, then try again in your own words. Click any cue
+            to see why.
+          </p>
+        </div>
+        <ul
+          aria-label="Cues"
+          className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground"
+        >
+          <li className="flex items-center gap-1.5">
+            <span className="rounded-sm bg-primary/10 px-1 text-foreground underline decoration-primary/40 underline-offset-4 dark:bg-primary/20">
+              word
+            </span>
+            {formatNumber(changes)} {changes === 1 ? "change" : "changes"}
+          </li>
+          <li className="flex items-center gap-1.5">
+            <span className={PAUSE_CHIP}>
+              <IconPlayerPauseFilled aria-hidden="true" className="size-3" />
+            </span>
+            {formatNumber(pauses)} {pauses === 1 ? "pause" : "pauses"} to take
+          </li>
+          <li className="flex items-center gap-1.5">
+            <span className="font-semibold text-foreground underline decoration-primary decoration-2 underline-offset-4">
+              word
+            </span>
+            {formatNumber(stresses)} {stresses === 1 ? "word" : "words"} to
+            stress
+          </li>
+        </ul>
       </div>
       <div className="flex max-w-prose flex-col gap-4 text-base leading-8 text-pretty">
         {paragraphs.map((paragraph, index) => (
           // oxlint-disable-next-line react/no-array-index-key
           <p key={index}>
-            {paragraph.map((mark, markIndex) => {
-              if (mark.kind === "changed") {
-                return (
-                  <mark
-                    className="rounded-sm bg-primary/15 px-0.5 text-foreground"
-                    // oxlint-disable-next-line react/no-array-index-key
-                    key={markIndex}
-                  >
-                    {mark.text}
-                  </mark>
-                );
-              }
-              if (mark.kind === "pause") {
-                // A deliberate pause to take here; same look as "Add a pause".
-                return (
-                  <span
-                    className="mx-0.5 inline-flex items-center gap-1 rounded-full bg-chart-2/15 px-1.5 align-middle text-xs leading-5 font-medium text-chart-2 tabular-nums ring-1 ring-chart-2/40 ring-inset"
-                    // oxlint-disable-next-line react/no-array-index-key
-                    key={markIndex}
-                  >
-                    <IconPlayerPauseFilled
-                      aria-hidden="true"
-                      className="size-3"
-                    />
-                    <span aria-hidden="true">
-                      {formatNumber(mark.seconds)}s
-                    </span>
-                    <span className="sr-only">
-                      (pause {formatNumber(mark.seconds)}{" "}
-                      {mark.seconds === 1 ? "second" : "seconds"})
-                    </span>
-                  </span>
-                );
-              }
-
-              return "text" in mark ? mark.text : null;
-            })}
+            {gluePunctuation(paragraph).map(({ mark, trailing }, markIndex) => (
+              <span
+                className={trailing === "" ? undefined : "whitespace-nowrap"}
+                // oxlint-disable-next-line react/no-array-index-key
+                key={markIndex}
+              >
+                <Cue mark={mark} />
+                {trailing}
+              </span>
+            ))}
           </p>
         ))}
       </div>
