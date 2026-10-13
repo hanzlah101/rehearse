@@ -1,4 +1,6 @@
 import { IconCheck, IconSelector } from "@tabler/icons-react";
+import { cva } from "class-variance-authority";
+import type { VariantProps } from "class-variance-authority";
 import { cn } from "cn";
 import type * as React from "react";
 import {
@@ -30,26 +32,48 @@ function Select<T extends object>({ className, ...props }: SelectProps<T>) {
   );
 }
 
+const selectTriggerVariants = cva(
+  "flex w-full min-w-0 cursor-default items-center gap-2 bg-card px-3 text-left text-sm text-foreground shadow-xs ring-1 ring-input outline-hidden transition-shadow duration-100 ease-linear ring-inset data-focus-visible:ring-2 data-focus-visible:ring-ring data-pressed:bg-muted dark:bg-input/30 data-disabled:cursor-not-allowed data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  {
+    defaultVariants: { size: "default" },
+    variants: {
+      size: {
+        default: "h-10 rounded-lg",
+        // Compact, for toolbars.
+        sm: "h-9 rounded-md font-medium",
+      },
+    },
+  }
+);
+
 function SelectTrigger({
   children,
   className,
+  size,
 }: {
   children?: React.ReactNode;
   className?: string;
-}) {
+} & VariantProps<typeof selectTriggerVariants>) {
   return (
     <ButtonPrimitive
       data-slot="select-trigger"
-      className={cn(
-        "flex h-10 w-full min-w-0 cursor-default items-center gap-2 rounded-lg bg-card px-3 text-left text-sm text-foreground shadow-xs ring-1 ring-input outline-hidden transition-shadow duration-100 ease-linear ring-inset data-focus-visible:ring-2 data-focus-visible:ring-ring data-pressed:bg-muted dark:bg-input/30 data-disabled:cursor-not-allowed data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        className
-      )}
+      className={cn(selectTriggerVariants({ size }), className)}
     >
       {children}
+      {/* The selected item's textValue, so items with rich content (two
+          lines, badges) still read as one line here. */}
       <SelectValuePrimitive
         data-slot="select-value"
         className="min-w-0 flex-1 truncate data-placeholder:text-muted-foreground"
-      />
+      >
+        {({ defaultChildren, isPlaceholder, selectedText }) => (
+          <span>
+            {isPlaceholder || selectedText === ""
+              ? defaultChildren
+              : selectedText}
+          </span>
+        )}
+      </SelectValuePrimitive>
       <IconSelector className="text-muted-foreground" />
     </ButtonPrimitive>
   );

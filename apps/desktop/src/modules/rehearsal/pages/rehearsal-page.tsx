@@ -3,17 +3,11 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
-import { formatDateTime, formatNumber, formatPercent } from "@/lib/format";
+import { formatNumber, formatPercent } from "@/lib/format";
 import { useSession } from "@/modules/auth/queries/session";
 import { rehearsalQueryOptions } from "@/modules/history/queries/rehearsals";
 import { AttemptGuide } from "@/modules/rehearsal/components/attempt-guide";
+import { AttemptSwitcher } from "@/modules/rehearsal/components/attempt-switcher";
 import { ScoreTrend } from "@/modules/rehearsal/components/score-trend";
 
 const routeApi = getRouteApi("/(private)/(app)/rehearsals/$id");
@@ -45,8 +39,8 @@ export function RehearsalNotFound() {
 }
 
 // One rehearsal thread: every attempt on a topic, the score trend that picks
-// between them, and the picked attempt's guide. "Try again" (in the sticky
-// toolbar) starts a session on the same topic and length.
+// between them, and the picked attempt's guide. The sticky toolbar holds the
+// attempt switcher and "Try again" (a session on the same topic and length).
 export function RehearsalPage() {
   const { id } = routeApi.useParams();
   const { student } = useSession();
@@ -84,13 +78,14 @@ export function RehearsalPage() {
       key={rehearsal.id}
     >
       {/* Page toolbar: full panel width, stays put while scrolling, so the
-          action always has the same corner and stays in reach. */}
+          attempt switcher and the action keep their corners and stay in
+          reach. */}
       <div className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-card/85 px-4 backdrop-blur-md md:px-6">
-        <p className="min-w-0 truncate text-sm text-muted-foreground">
-          {formatNumber(minutes)}-minute talk · {formatNumber(attempts.length)}{" "}
-          {attempts.length === 1 ? "attempt" : "attempts"}
-          {scores.length > 0 && ` · best ${formatPercent(Math.max(...scores))}`}
-        </p>
+        <AttemptSwitcher
+          attempts={attempts}
+          onSelect={select}
+          selected={selected.n}
+        />
         <Button
           className="shrink-0"
           onPress={() => {
@@ -111,10 +106,17 @@ export function RehearsalPage() {
       </div>
 
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-12 px-6 py-10 md:px-10">
-        <header className="flex flex-col gap-4">
+        <header className="flex flex-col gap-3">
           <h1 className="max-w-xl text-4xl leading-none font-semibold text-balance md:text-5xl">
             {rehearsal.topic}
           </h1>
+          <p className="text-sm text-muted-foreground">
+            {formatNumber(minutes)}-minute talk ·{" "}
+            {formatNumber(attempts.length)}{" "}
+            {attempts.length === 1 ? "attempt" : "attempts"}
+            {scores.length > 0 &&
+              ` · best ${formatPercent(Math.max(...scores))}`}
+          </p>
         </header>
 
         <ScoreTrend
@@ -122,33 +124,6 @@ export function RehearsalPage() {
           onSelect={select}
           selected={selected.n}
         />
-
-        {attempts.length > 1 && (
-          <Select
-            className="w-full sm:w-72"
-            onChange={(key) => {
-              if (typeof key === "number") {
-                select(key);
-              }
-            }}
-            value={selected.n}
-          >
-            <Label className="sr-only">Attempt</Label>
-            <SelectTrigger />
-            <SelectContent>
-              {attempts.toReversed().map((attempt) => (
-                <SelectItem
-                  id={attempt.n}
-                  key={attempt.n}
-                  textValue={`Attempt ${formatNumber(attempt.n)}`}
-                >
-                  Attempt {formatNumber(attempt.n)} ·{" "}
-                  {formatDateTime(attempt.createdAt)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
 
         <AttemptGuide
           attempt={selected}
