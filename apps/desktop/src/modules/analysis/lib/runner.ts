@@ -32,7 +32,10 @@ import {
   setFeedbackJob,
 } from "@/modules/history/lib/rehearsals";
 import type { AnalysisTarget } from "@/modules/history/lib/rehearsals";
-import { LOCAL_QUERY_KEY } from "@/modules/history/queries/rehearsals";
+import {
+  LOCAL_QUERY_KEY,
+  updateCachedAttempt,
+} from "@/modules/history/queries/rehearsals";
 
 // The background analysis job (PLAN §3). Local work runs one attempt at a
 // time (it loads a 1.6 GB model): decode → WAV → CrisperWhisper → Praat →
@@ -374,6 +377,17 @@ async function finishReview(
     },
   });
   await completeAnalysis(id, { feedback, score });
+  if (context !== null) {
+    updateCachedAttempt(
+      context.queryClient,
+      {
+        attemptId: id,
+        rehearsalId: target.rehearsalId,
+        studentId: context.studentId,
+      },
+      { error: null, feedback, score, status: "ready" }
+    );
+  }
   await refresh();
   context?.onReady(target, score);
   // Keep the finished state briefly so an open checkpoint list can show it.

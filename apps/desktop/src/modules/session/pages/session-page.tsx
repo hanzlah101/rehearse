@@ -26,7 +26,10 @@ import {
   startAttempt,
   updateSpokenSeconds,
 } from "@/modules/history/lib/rehearsals";
-import { LOCAL_QUERY_KEY } from "@/modules/history/queries/rehearsals";
+import {
+  LOCAL_QUERY_KEY,
+  updateCachedAttempt,
+} from "@/modules/history/queries/rehearsals";
 import { AnalyzePhase } from "@/modules/session/components/analyze-phase";
 import type { SaveState } from "@/modules/session/components/analyze-phase";
 import { OrbFrame } from "@/modules/session/components/orb-frame";
@@ -184,6 +187,15 @@ function Session({ onRestart }: { onRestart: () => void }) {
         spokenSeconds: seconds,
         status: "processing",
       });
+      updateCachedAttempt(
+        queryClient,
+        {
+          attemptId: current.id,
+          rehearsalId: current.rehearsalId,
+          studentId: student.id,
+        },
+        { spokenSeconds: seconds, status: "processing" }
+      );
       unfinished.current = null;
       setSave("saved");
       enqueueAnalysis(current.id);

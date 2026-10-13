@@ -134,7 +134,7 @@ function recordingQueryOptions(path: string, mimeType: string) {
       return new Blob([new Uint8Array(bytes)], { type: mimeType });
     },
     queryKey: [...LOCAL_QUERY_KEY, "recording", path],
-    staleTime: "static",
+    staleTime: Infinity,
   });
 }
 
