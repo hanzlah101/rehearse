@@ -417,6 +417,40 @@ function findFillerCandidates(words: TalkWord[], sentences: Sentence[]) {
   return fillerCandidates;
 }
 
+const CLOSERS: Record<string, string> = { "(": ")", "[": "]" };
+
+// Below this many spoken words there's nothing to give feedback on (a talk
+// is at least 30 s; even slow speech is far above this).
+export const MIN_SPOKEN_WORDS = 15;
+
+// The words actually spoken: Whisper's non-speech annotations
+// ("[Background noise]", "(music)", "[laughter]"), which come as their own
+// tokens, are dropped. Fillers stay ([UM]/[UH] arrive as "um"/"uh").
+export function withoutAnnotations(words: Word[]) {
+  const spoken: Word[] = [];
+  let closer: string | null = null;
+
+  for (const word of words) {
+    const text = word.text.trim();
+    if (closer !== null) {
+      if (text.includes(closer)) {
+        closer = null;
+      }
+      continue;
+    }
+    const opener = CLOSERS[text.charAt(0)] ?? null;
+    if (opener !== null) {
+      if (!text.includes(opener)) {
+        closer = opener;
+      }
+      continue;
+    }
+    spoken.push(word);
+  }
+
+  return spoken;
+}
+
 export function computeMetrics(
   rawWords: Word[],
   prosody: Prosody | null,

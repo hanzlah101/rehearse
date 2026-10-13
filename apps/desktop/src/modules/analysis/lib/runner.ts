@@ -9,6 +9,8 @@ import { deleteWav, prepareWav } from "@/modules/analysis/lib/audio";
 import {
   computeMetrics,
   LONG_PAUSE_SECONDS,
+  MIN_SPOKEN_WORDS,
+  withoutAnnotations,
 } from "@/modules/analysis/lib/metrics";
 import type { Metrics } from "@/modules/analysis/lib/metrics";
 import { buildReport, confirmedFillers } from "@/modules/analysis/lib/report";
@@ -268,10 +270,18 @@ async function transcribeLocally(
 }
 
 function metricsOf(target: AnalysisTarget, speech: Speech) {
-  if (speech.words.length === 0) {
-    throw new AnalysisError("We couldn't hear any speech in this recording.");
+  const words = withoutAnnotations(speech.words);
+  if (words.length === 0) {
+    throw new AnalysisError(
+      "We couldn't hear any speech in this recording. Check that your microphone picks you up."
+    );
   }
-  return computeMetrics(speech.words, speech.prosody, target.topic);
+  if (words.length < MIN_SPOKEN_WORDS) {
+    throw new AnalysisError(
+      "We heard too little speech to give feedback. Check that your microphone picks you up, then try again."
+    );
+  }
+  return computeMetrics(words, speech.prosody, target.topic);
 }
 
 // Server review

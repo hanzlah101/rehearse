@@ -2,7 +2,10 @@ import { describe, expect, test } from "bun:test";
 
 import type { FeedbackResult } from "@server/modules/feedback/feedback.schemas";
 
-import { computeMetrics } from "@/modules/analysis/lib/metrics";
+import {
+  computeMetrics,
+  withoutAnnotations,
+} from "@/modules/analysis/lib/metrics";
 import { buildReport } from "@/modules/analysis/lib/report";
 import type { Word } from "@/modules/analysis/lib/speech";
 import {
@@ -92,6 +95,22 @@ describe("computeMetrics", () => {
   test("takes pauses from Praat silences", () => {
     expect(metrics.longPauses).toEqual([{ i: 1, seconds: 2, word: 10 }]);
     expect(metrics.longestPause).toBeCloseTo(2);
+  });
+});
+
+describe("withoutAnnotations", () => {
+  test("drops non-speech annotations, keeps fillers", () => {
+    const noisy = wordsOf(
+      "[ Background noise ] um so (music) we start [laughter] here"
+    );
+    expect(withoutAnnotations(noisy).map(({ text }) => text)).toEqual([
+      "um",
+      "so",
+      "we",
+      "start",
+      "here",
+    ]);
+    expect(withoutAnnotations(wordsOf("[ Background noise ]"))).toEqual([]);
   });
 });
 
