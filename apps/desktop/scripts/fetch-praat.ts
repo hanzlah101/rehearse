@@ -100,6 +100,8 @@ try {
   await Bun.write(archivePath, archive);
   const extracted = path.join(work, "out");
   await mkdir(extracted);
+  // Gitignored, so missing on a fresh clone; lipo doesn't create parents.
+  await mkdir(binaries, { recursive: true });
 
   if (build === MAC) {
     const mount = path.join(work, "mount");
@@ -121,7 +123,6 @@ try {
   } else {
     // bsdtar reads .zip too (built into Windows 10+).
     await $`tar -xf ${archivePath} -C ${extracted}`.quiet();
-    await mkdir(binaries, { recursive: true });
     await copyFile(path.join(extracted, build.entry), output);
   }
 

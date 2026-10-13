@@ -2,7 +2,7 @@ import { and, count, eq, gt, sql } from "drizzle-orm";
 import { getClientSubscriptionToken } from "inngest/react";
 
 import { db } from "@/server/db/client";
-import { feedbackJobs, keyPoints } from "@/server/db/schema";
+import { feedbackJobs, feedbackRequests, keyPoints } from "@/server/db/schema";
 import type { FeedbackJob } from "@/server/db/schema";
 import { inngest } from "@/server/inngest";
 import { FEEDBACK_DAILY_LIMIT } from "@/server/modules/feedback/feedback.constants";
@@ -114,32 +114,45 @@ export async function submitFeedback(
     return await startRun(restarted);
   }
 
-  const [recent] = await db
-    .select({ value: count() })
-    .from(feedbackJobs)
-    .where(
-      and(
-        eq(feedbackJobs.studentId, studentId),
-        gt(feedbackJobs.createdAt, new Date(Date.now() - DAY_MS))
-      )
+  // Count and insert under a per-student lock, so concurrent submits can't
+  // all see room under the limit.
+  const created = await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`feedback:${studentId}`}))`
     );
+    const [recent] = await tx
+      .select({ value: count() })
+      .from(feedbackRequests)
+      .where(
+        and(
+          eq(feedbackRequests.studentId, studentId),
+          gt(feedbackRequests.createdAt, new Date(Date.now() - DAY_MS))
+        )
+      );
 
-  if ((recent?.value ?? 0) >= FEEDBACK_DAILY_LIMIT) {
-    throw new FeedbackRateLimited();
-  }
+    if ((recent?.value ?? 0) >= FEEDBACK_DAILY_LIMIT) {
+      throw new FeedbackRateLimited();
+    }
 
-  const [created] = await db
-    .insert(feedbackJobs)
-    .values({
-      attemptId: input.attemptId,
-      input,
-      stage: "queued",
-      status: "queued",
-      studentId,
-    })
-    // A double submit racing this one: return the row that won.
-    .onConflictDoNothing()
-    .returning();
+    const [job] = await tx
+      .insert(feedbackJobs)
+      .values({
+        attemptId: input.attemptId,
+        input,
+        stage: "queued",
+        status: "queued",
+        studentId,
+      })
+      // A double submit of the same attempt racing this one: return the
+      // row that won (and don't count this one).
+      .onConflictDoNothing()
+      .returning();
+
+    if (job !== undefined) {
+      await tx.insert(feedbackRequests).values({ studentId });
+    }
+    return job;
+  });
 
   if (created === undefined) {
     return await submitFeedback(studentId, input);

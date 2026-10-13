@@ -193,8 +193,10 @@ function messageOf(error: unknown) {
   return "Something went wrong while analysing this talk. Try again.";
 }
 
-async function fail(id: string, error: unknown) {
-  if (isStopped(error)) {
+// `signal`: an aborted run is a stop whatever error it ended with (whisper
+// rejects with "Cancelled" when the runner stops mid-transcription).
+async function fail(id: string, error: unknown, signal?: AbortSignal) {
+  if (isStopped(error) || signal?.aborted === true) {
     forget(id);
     return;
   }
@@ -517,7 +519,7 @@ async function review(
       await setFeedbackJob(target.id, null);
     }
   } catch (error) {
-    await fail(target.id, error);
+    await fail(target.id, error, signal);
   }
 }
 
@@ -543,7 +545,7 @@ async function runLocal(id: string) {
     metrics = metricsOf(target, speech);
     update(id, { findings: describeLocal(metrics) });
   } catch (error) {
-    await fail(id, error);
+    await fail(id, error, signal);
     return;
   }
   // The review waits on the network, not this machine: let the next attempt

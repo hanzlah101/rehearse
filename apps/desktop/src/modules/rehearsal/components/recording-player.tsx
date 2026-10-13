@@ -13,7 +13,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { formatDuration, formatNumber } from "@/lib/format";
 import { useIsDark } from "@/lib/theme";
 import { readRecording } from "@/modules/common/lib/recordings";
-import { LOCAL_QUERY_KEY } from "@/modules/history/queries/rehearsals";
 
 const SPEEDS = [1, 1.25, 1.5, 0.75];
 
@@ -133,7 +132,9 @@ function recordingQueryOptions(path: string, mimeType: string) {
       const bytes = await readRecording(path);
       return new Blob([new Uint8Array(bytes)], { type: mimeType });
     },
-    queryKey: [...LOCAL_QUERY_KEY, "recording", path],
+    // Outside LOCAL_QUERY_KEY: a saved recording never changes, and the
+    // invalidation after every local write would reload (and stop) it.
+    queryKey: ["recording", path],
     staleTime: Infinity,
   });
 }

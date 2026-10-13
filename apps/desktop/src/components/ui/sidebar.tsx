@@ -81,7 +81,13 @@ function SidebarList<T>({
   const list = useRef<VListHandle>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const typeahead = useRef({ at: 0, text: "" });
-  const [focused, setFocused] = useState<number | null>(null);
+  const [focusedRow, setFocusedRow] = useState<number | null>(null);
+  // Rows change under it (search, deletes): only trust it while it still
+  // points at an item, or nothing would be tabbable.
+  const focused =
+    focusedRow !== null && rows[focusedRow]?.kind === "item"
+      ? focusedRow
+      : null;
   const items = rows.flatMap((row, index) =>
     row.kind === "item" ? [index] : []
   );
@@ -102,7 +108,7 @@ function SidebarList<T>({
     if (row === undefined) {
       return;
     }
-    setFocused(row);
+    setFocusedRow(row);
     list.current?.scrollToIndex(row, { align: "nearest" });
     requestAnimationFrame(() => {
       scroller.current
@@ -210,7 +216,7 @@ function SidebarList<T>({
                 data-selected={row.id === selectedId ? "true" : undefined}
                 data-slot="sidebar-list-item"
                 onClick={() => {
-                  setFocused(index);
+                  setFocusedRow(index);
                   onAction(row.item);
                 }}
                 onContextMenu={(event) => {
@@ -218,7 +224,7 @@ function SidebarList<T>({
                   onItemContextMenu?.(row.item, event.currentTarget);
                 }}
                 onFocus={() => {
-                  setFocused(index);
+                  setFocusedRow(index);
                 }}
                 onKeyDown={(event) => {
                   onKeyDown(event, index);

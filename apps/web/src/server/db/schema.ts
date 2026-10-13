@@ -135,6 +135,27 @@ export const feedbackJobs = pgTable(
   ]
 );
 
+// One row per review a student starts, never deleted with the review, so
+// deleting reviews can't reset the daily limit (FEEDBACK_DAILY_LIMIT).
+export const feedbackRequests = pgTable(
+  "feedback_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("feedback_requests_student_created_idx").on(
+      table.studentId,
+      table.createdAt
+    ),
+  ]
+);
+
 export type Student = typeof students.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type Topic = typeof topics.$inferSelect;
