@@ -1,32 +1,27 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { cn } from "cn";
 
 import { formatDelta, formatNumber, formatPercent } from "@/lib/format";
-import {
-  REHEARSAL_GROUPS,
-  PRACTICE_DAYS,
-  STREAK_DAYS,
-} from "@/modules/history/lib/rehearsals";
-
-// The latest attempt overall, against the attempt before it on that topic.
-const recent = REHEARSAL_GROUPS.at(0)?.rehearsals.at(0);
-const previous = recent?.attempts.at(-2);
-
-// PRACTICE_DAYS ends today.
-const week = PRACTICE_DAYS.map((practised, index) => {
-  const date = new Date();
-  date.setDate(date.getDate() - (PRACTICE_DAYS.length - 1 - index));
-
-  return { date, isToday: index === PRACTICE_DAYS.length - 1, practised };
-});
+import { useSession } from "@/modules/auth/queries/session";
+import { progressQueryOptions } from "@/modules/history/queries/rehearsals";
 
 export function ProgressStats() {
+  const { student } = useSession();
+  const {
+    data: { days, lastScore, streak },
+  } = useSuspenseQuery(progressQueryOptions(student.id));
+  const week = days.map((day, index) => ({
+    ...day,
+    isToday: index === days.length - 1,
+  }));
+
   return (
     <dl className="grid grid-cols-2 gap-8 border-t pt-8">
       <div className="flex flex-col gap-3">
         <dt className="text-sm text-muted-foreground">Streak</dt>
         <dd className="flex flex-wrap items-center gap-x-5 gap-y-3">
           <span className="font-heading text-3xl font-semibold tabular-nums">
-            {formatNumber(STREAK_DAYS)} days
+            {formatNumber(streak)} {streak === 1 ? "day" : "days"}
           </span>
           <ol aria-label="Last 7 days" className="flex gap-2">
             {week.map(({ date, isToday, practised }) => (
@@ -62,12 +57,12 @@ export function ProgressStats() {
         <dt className="text-sm text-muted-foreground">Last score</dt>
         <dd className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span className="font-heading text-3xl font-semibold tabular-nums">
-            {recent === undefined ? "–" : formatPercent(recent.latest.score)}
+            {lastScore === null ? "–" : formatPercent(lastScore.score)}
           </span>
-          {recent !== undefined && previous !== undefined && (
+          {lastScore !== null && lastScore.delta !== null && (
             <span className="text-sm text-muted-foreground">
               <span className="font-medium text-foreground tabular-nums">
-                {formatDelta(recent.latest.score - previous.score)}
+                {formatDelta(lastScore.delta)}
               </span>{" "}
               since your last attempt
             </span>
