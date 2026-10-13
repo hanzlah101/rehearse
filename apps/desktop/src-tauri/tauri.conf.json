@@ -19,10 +19,13 @@
         "minHeight": 520,
         "maximized": true,
         "titleBarStyle": "Overlay",
-        "hiddenTitle": true
+        "hiddenTitle": true,
+        "visible": false
       }
     ],
-    "security": { "csp": null }
+    "security": {
+      "csp": null
+    }
   },
   "bundle": {
     "active": true,
@@ -34,6 +37,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "macOS": { "entitlements": "./Entitlements.plist" }
+    "macOS": {
+      "entitlements": "./Entitlements.plist"
+    },
+    "externalBin": ["binaries/praat"]
   }
 }

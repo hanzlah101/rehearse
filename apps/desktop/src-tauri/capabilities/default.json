@@ -18,6 +18,72 @@
           "url": "ms-settings:*"
         }
       ]
+    },
+    {
+      "identifier": "fs:allow-mkdir",
+      "allow": [
+        {
+          "path": "$APPDATA/recordings"
+        },
+        {
+          "path": "$APPDATA/recordings/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-write-file",
+      "allow": [
+        {
+          "path": "$APPDATA/recordings"
+        },
+        {
+          "path": "$APPDATA/recordings/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-read-file",
+      "allow": [
+        {
+          "path": "$APPDATA/recordings"
+        },
+        {
+          "path": "$APPDATA/recordings/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-remove",
+      "allow": [
+        {
+          "path": "$APPDATA/recordings"
+        },
+        {
+          "path": "$APPDATA/recordings/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-read-dir",
+      "allow": [
+        {
+          "path": "$APPDATA/recordings"
+        },
+        {
+          "path": "$APPDATA/recordings/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-exists",
+      "allow": [
+        {
+          "path": "$APPDATA/recordings"
+        },
+        {
+          "path": "$APPDATA/recordings/**"
+        }
+      ]
     }
   ]
 }
