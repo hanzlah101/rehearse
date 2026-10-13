@@ -1,7 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { z } from "zod";
 
-import { getRehearsal } from "@/modules/history/lib/rehearsals";
+import { rehearsalQueryOptions } from "@/modules/history/queries/rehearsals";
 import {
   RehearsalNotFound,
   RehearsalPage,
@@ -9,14 +9,14 @@ import {
 
 export const Route = createFileRoute("/(private)/(app)/rehearsals/$id")({
   component: RehearsalPage,
-  loader: ({ params }) => {
-    const rehearsal = getRehearsal(params.id);
+  loader: async ({ context, params }) => {
+    const rehearsal = await context.queryClient.query(
+      rehearsalQueryOptions(context.session.student.id, params.id)
+    );
 
-    if (rehearsal === undefined) {
+    if (rehearsal === null) {
       throw notFound();
     }
-
-    return rehearsal;
   },
   notFoundComponent: RehearsalNotFound,
   // ?attempt=2 picks an attempt; without it the latest one is shown.

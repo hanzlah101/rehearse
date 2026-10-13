@@ -7,10 +7,8 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/format";
+import { MIN_SPOKEN_SECONDS } from "@/modules/history/lib/rehearsals";
 import { Clock } from "@/modules/session/components/clock";
-
-// Talks under this many seconds aren't analysed, so Finish waits (PLAN §2.4).
-const MIN_SECONDS = 30;
 
 function hintFor(isPaused: boolean, canFinish: boolean) {
   if (isPaused) {
@@ -19,7 +17,7 @@ function hintFor(isPaused: boolean, canFinish: boolean) {
 
   return canFinish
     ? "Speak from your own head. Finish whenever you’re done."
-    : `Keep going: you can finish after ${formatNumber(MIN_SECONDS)} seconds.`;
+    : `Keep going: you can finish after ${formatNumber(MIN_SPOKEN_SECONDS)} seconds.`;
 }
 
 export function SpeakPhase({
@@ -37,7 +35,7 @@ export function SpeakPhase({
   onPausedChange: (isPaused: boolean) => void;
   target: number;
 }) {
-  const canFinish = elapsed >= MIN_SECONDS;
+  const canFinish = elapsed >= MIN_SPOKEN_SECONDS;
 
   return (
     <div className="flex flex-col items-center gap-6">

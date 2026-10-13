@@ -12,3 +12,19 @@ export function getErrorMessage(error: unknown, message?: string) {
     : (message ??
         "Couldn't reach the server. Check your connection and try again.");
 }
+
+// fetch() rejects with a TypeError whose message differs per engine; oRPC
+// passes it through. Undeclared ORPCErrors are proxy/network failures (502…).
+const NETWORK_MESSAGES = new Set([
+  "Failed to fetch",
+  "Load failed",
+  "NetworkError when attempting to fetch resource.",
+]);
+
+export function isNetworkError(error: unknown) {
+  if (error instanceof ORPCError) {
+    return !error.defined;
+  }
+
+  return error instanceof TypeError && NETWORK_MESSAGES.has(error.message);
+}

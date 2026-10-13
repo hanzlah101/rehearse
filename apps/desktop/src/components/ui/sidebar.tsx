@@ -1,17 +1,8 @@
 import { cn } from "cn";
 import type * as React from "react";
-import {
-  composeRenderProps,
-  Header,
-  ListBox,
-  ListBoxItem,
-  ListBoxSection,
-} from "react-aria-components";
-import type {
-  ListBoxItemProps,
-  ListBoxProps,
-  ListBoxSectionProps,
-} from "react-aria-components";
+import { useEffect, useRef, useState } from "react";
+import { VList } from "virtua";
+import type { VListHandle } from "virtua";
 
 // Sits on the window frame (AppLayout paints it), so it has no surface of its
 // own.
@@ -58,72 +49,198 @@ function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-// Keyboard-navigable list (arrow keys, type-ahead) of sections and items.
-function SidebarList<T extends object>({
-  className,
-  ...props
-}: ListBoxProps<T>) {
-  return (
-    <ListBox
-      data-slot="sidebar-list"
-      // Escape should close a sheet holding the sidebar, not clear selection.
-      escapeKeyBehavior="none"
-      className={composeRenderProps(className, (renderClassName) =>
-        cn(
-          "flex flex-col gap-4 outline-hidden data-empty:px-2 data-empty:py-6 data-empty:text-center data-empty:text-sm data-empty:text-muted-foreground",
-          renderClassName
-        )
-      )}
-      {...props}
-    />
-  );
-}
+export type SidebarListRow<T> =
+  | { id: string; kind: "header"; title: string }
+  | { id: string; item: T; kind: "item"; textValue: string };
 
-function SidebarListSection<T extends object>({
-  children,
-  className,
-  title,
-  ...props
-}: Omit<ListBoxSectionProps<T>, "children"> & {
-  children: React.ReactNode;
-  title: React.ReactNode;
+const TYPEAHEAD_MS = 500;
+
+// A virtualized listbox (virtua) of section headers and items: only the rows
+// in view are rendered, so it stays fast with thousands of items. React
+// Aria's ListBox can't be virtualized from outside (its collection needs every
+// item rendered), so keyboard support is built in here: one tab stop, arrow
+// keys, Home/End, Enter/Space, type-ahead; the focused row is kept mounted
+// while scrolled away, and options carry their position in the whole list.
+function SidebarList<T>({
+  "aria-label": ariaLabel,
+  emptyState,
+  onAction,
+  onItemContextMenu,
+  renderItem,
+  rows,
+  selectedId,
+}: {
+  "aria-label": string;
+  emptyState: React.ReactNode;
+  onAction: (item: T) => void;
+  onItemContextMenu?: (item: T, target: Element) => void;
+  renderItem: (item: T) => React.ReactNode;
+  rows: SidebarListRow<T>[];
+  selectedId: string | null;
 }) {
+  const list = useRef<VListHandle>(null);
+  const scroller = useRef<HTMLDivElement>(null);
+  const typeahead = useRef({ at: 0, text: "" });
+  const [focusedRow, setFocusedRow] = useState<number | null>(null);
+  // Rows change under it (search, deletes): only trust it while it still
+  // points at an item, or nothing would be tabbable.
+  const focused =
+    focusedRow !== null && rows[focusedRow]?.kind === "item"
+      ? focusedRow
+      : null;
+  const items = rows.flatMap((row, index) =>
+    row.kind === "item" ? [index] : []
+  );
+  const selectedRow = rows.findIndex(
+    (row) => row.kind === "item" && row.id === selectedId
+  );
+  const tabRow =
+    focused ?? (selectedRow === -1 ? (items[0] ?? -1) : selectedRow);
+
+  // Keep the open item in view when it changes (e.g. after navigating).
+  useEffect(() => {
+    if (selectedRow !== -1) {
+      list.current?.scrollToIndex(selectedRow, { align: "nearest" });
+    }
+  }, [selectedRow]);
+
+  function focusRow(row: number | undefined) {
+    if (row === undefined) {
+      return;
+    }
+    setFocusedRow(row);
+    list.current?.scrollToIndex(row, { align: "nearest" });
+    requestAnimationFrame(() => {
+      scroller.current
+        ?.querySelector<HTMLElement>(`[data-row="${String(row)}"]`)
+        ?.focus();
+    });
+  }
+
+  // `now`: the key event's timestamp.
+  function findByText(key: string, from: number, now: number) {
+    const text =
+      (now - typeahead.current.at < TYPEAHEAD_MS
+        ? typeahead.current.text
+        : "") + key.toLowerCase();
+    typeahead.current = { at: now, text };
+    // A new search starts after the current item; a longer one includes it.
+    const start = items.indexOf(from) + (text.length === 1 ? 1 : 0);
+    const ordered = [...items.slice(start), ...items.slice(0, start)];
+    return ordered.find((row) => {
+      const candidate = rows[row];
+      return (
+        candidate?.kind === "item" &&
+        candidate.textValue.toLowerCase().startsWith(text)
+      );
+    });
+  }
+
+  function onKeyDown(event: React.KeyboardEvent, row: number) {
+    const position = items.indexOf(row);
+    const current = rows[row];
+    let target: number | undefined;
+
+    if (event.key === "ArrowDown") {
+      target = items[Math.min(position + 1, items.length - 1)];
+    } else if (event.key === "ArrowUp") {
+      target = items[Math.max(position - 1, 0)];
+    } else if (event.key === "Home") {
+      [target] = items;
+    } else if (event.key === "End") {
+      target = items.at(-1);
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      if (current?.kind === "item") {
+        onAction(current.item);
+      }
+      return;
+    } else if (
+      event.key.length === 1 &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.altKey
+    ) {
+      target = findByText(event.key, row, event.timeStamp);
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    focusRow(target);
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="flex-1 px-5 py-6 text-center text-sm text-muted-foreground">
+        {emptyState}
+      </div>
+    );
+  }
+
   return (
-    <ListBoxSection
-      data-slot="sidebar-list-section"
-      className={cn("flex flex-col gap-0.5", className)}
-      {...props}
+    <div
+      data-slot="sidebar-list"
+      className="relative min-h-0 flex-1"
+      ref={scroller}
     >
-      <Header className="px-2 pb-1 text-xs font-medium text-muted-foreground">
-        {title}
-      </Header>
-      {children}
-    </ListBoxSection>
+      <VList
+        aria-label={ariaLabel}
+        className="absolute inset-0 pb-3 outline-hidden"
+        keepMounted={focused === null ? undefined : [focused]}
+        ref={list}
+        // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- <select> can't hold virtualized custom rows
+        role="listbox"
+      >
+        {rows.map((row, index) =>
+          row.kind === "header" ? (
+            <div
+              className={cn(
+                "px-5.5 pb-1.5 text-xs font-medium text-muted-foreground",
+                index === 0 ? "pt-2" : "pt-4"
+              )}
+              key={row.id}
+              role="presentation"
+            >
+              {row.title}
+            </div>
+          ) : (
+            <div className="px-3 py-px" key={row.id} role="presentation">
+              <div
+                aria-posinset={items.indexOf(index) + 1}
+                aria-selected={row.id === selectedId}
+                aria-setsize={items.length}
+                className="group/item flex cursor-default flex-col gap-0.5 rounded-lg px-2.5 py-1.5 text-sm text-sidebar-foreground/85 outline-hidden transition-colors duration-150 ease-out select-none hover:text-sidebar-foreground not-data-selected:hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid not-data-selected:active:bg-sidebar-accent motion-reduce:transition-none dark:not-data-selected:hover:bg-input/15 data-selected:bg-card data-selected:text-sidebar-foreground data-selected:shadow-xs data-selected:ring-1 data-selected:ring-border/60 data-selected:ring-inset dark:data-selected:bg-input/25 dark:data-selected:shadow-none"
+                data-row={index}
+                // The data-selected variant matches "true", as React Aria sets it.
+                data-selected={row.id === selectedId ? "true" : undefined}
+                data-slot="sidebar-list-item"
+                onClick={() => {
+                  setFocusedRow(index);
+                  onAction(row.item);
+                }}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  onItemContextMenu?.(row.item, event.currentTarget);
+                }}
+                onFocus={() => {
+                  setFocusedRow(index);
+                }}
+                onKeyDown={(event) => {
+                  onKeyDown(event, index);
+                }}
+                // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- rows of the custom listbox above
+                role="option"
+                tabIndex={index === tabRow ? 0 : -1}
+              >
+                {renderItem(row.item)}
+              </div>
+            </div>
+          )
+        )}
+      </VList>
+    </div>
   );
 }
 
-// Selected = raised onto the panel material (bg-card).
-function SidebarListItem({ className, ...props }: ListBoxItemProps) {
-  return (
-    <ListBoxItem
-      data-slot="sidebar-list-item"
-      className={composeRenderProps(className, (renderClassName) =>
-        cn(
-          "flex h-8 cursor-default items-center gap-2 rounded-md px-2 text-sm text-sidebar-foreground/80 outline-hidden transition-[background-color,box-shadow] duration-150 ease-out select-none data-focus-visible:outline-2 data-focus-visible:-outline-offset-2 data-focus-visible:outline-ring data-focus-visible:outline-solid data-hovered:text-sidebar-foreground not-data-selected:data-hovered:bg-sidebar-accent not-data-selected:data-pressed:bg-sidebar-accent motion-reduce:transition-none dark:not-data-selected:data-hovered:bg-input/15 data-selected:bg-card data-selected:font-medium data-selected:text-sidebar-foreground data-selected:shadow-xs-skeuomorphic dark:data-selected:bg-card dark:data-selected:shadow-none dark:data-selected:ring-1 dark:data-selected:ring-border dark:data-selected:ring-inset",
-          renderClassName
-        )
-      )}
-      {...props}
-    />
-  );
-}
-
-export {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarList,
-  SidebarListItem,
-  SidebarListSection,
-};
+export { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarList };

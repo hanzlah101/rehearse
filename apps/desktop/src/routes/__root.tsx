@@ -3,6 +3,7 @@ import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 
 import { Toaster } from "@/components/ui/sonner";
 import { sessionQueryOptions } from "@/modules/auth/queries/session";
+import { openDatabase } from "@/modules/common/db/init";
 import { ErrorPage } from "@/modules/common/pages/error-page";
 import { SplashPage } from "@/modules/common/pages/splash-page";
 
@@ -22,9 +23,14 @@ function RootLayout() {
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-  beforeLoad: async ({ context }) => ({
-    session: await context.queryClient.query(sessionQueryOptions),
-  }),
+  // The session (server) and the local database open in parallel.
+  beforeLoad: async ({ context }) => {
+    const [session] = await Promise.all([
+      context.queryClient.query(sessionQueryOptions),
+      openDatabase(),
+    ]);
+    return { session };
+  },
   component: RootLayout,
   errorComponent: ErrorPage,
   pendingComponent: SplashPage,

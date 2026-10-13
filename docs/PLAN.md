@@ -79,20 +79,21 @@ Caching:
 ### 2.4 Session flow
 
 ```
-Home ─▶ Topic card ─▶ Speak (1–10 min) ─▶ Finishing analysis ─▶ Report ─▶ Retry / Next
+Home ─▶ Topic card ─▶ Mic check ─▶ Speak (1–10 min) ─▶ Finishing analysis ─▶ Report ─▶ Retry / Next
 ```
 
 1. **Home:** the topic (set, title, target length) with **Start**, **Change topic** (pick from the set or type your own), and a length picker. Below it: streak and last score.
-2. **Speak** (starts as soon as the student presses Start; no countdown):
+2. **Mic check:** pick the microphone (remembered; falls back to the default if it's unplugged) and watch the orb react to your voice, then **Start talking**.
+3. **Speak** (starts as soon as the student presses Start talking; no countdown):
    - Only the topic is on screen; the student speaks from their own head.
    - Timer counts up with the target marked; a thin progress bar fills toward the target.
    - **Stall nudge:** after ~3s of silence (local voice-activity detection on mic level), a short prompt appears ("Keep going, add an example or your next idea"). It disappears when speech resumes.
    - **Pause / resume** allowed (paused time excluded from metrics).
    - No live corrections.
    - Finish (enabled after 30s; shorter recordings aren't analysed) and Cancel (asks first, discards the attempt); auto-stop at target + 1 min.
-3. **Finishing analysis:** transcription runs in chunks **while the student speaks** (see §3.1), so after Stop only the final chunk, Praat, metrics and feedback remain (target: report in under 30s on Apple Silicon for a 10-minute talk).
-4. **Report:** see §4.
-5. **Retry:** same topic and target, "Focus on these 3" carried over from the last report (plus key points they missed); the report then shows before/after deltas. **Next** picks a new topic.
+4. **Finishing analysis:** transcription runs in chunks **while the student speaks** (see §3.1), so after Stop only the final chunk, Praat, metrics and feedback remain (target: report in under 30s on Apple Silicon for a 10-minute talk).
+5. **Report:** see §4.
+6. **Retry:** same topic and target, "Focus on these 3" carried over from the last report (plus key points they missed); the report then shows before/after deltas. **Next** picks a new topic.
 
 ### 2.5 Rehearsal threads
 
@@ -112,11 +113,13 @@ Every topic the student practises becomes a **rehearsal** (a thread) that collec
 | 2 | Transcribe | Desktop | **CrisperWhisper 2.0 large** via `whisper-server` (whisper.cpp) sidecar, chunk by chunk during recording | Verbatim transcript **including fillers**, word timestamps |
 | 3 | Prosody | Desktop | **Praat** sidecar on the full recording | Pitch contour, intensity, silence intervals |
 | 4 | Metrics | Desktop (TypeScript) | Our code, no AI | WPM per minute, fillers, **repetition counts**, pauses, stalls, pitch variation, time vs target |
-| 5 | Language feedback | Backend → LLM | **gpt-oss-120b on Groq** (offline fallback: local **Qwen3.5 9B**) | Grammar, vocabulary, rephrasings, repetition alternatives, linking words, coverage, coherence |
+| 5 | Language feedback | Backend → LLM | **gpt-oss-120b on Groq** via the AI SDK, in an Inngest background job (fallback gpt-oss-20b after two failed attempts) | Grammar, vocabulary, rephrasings, repetition alternatives, linking words, coverage, coherence |
 | 6 | Content check | Backend → LLM | Same model, separate call | Technical/logic mistakes with corrections |
 | 7 | Score + save | Desktop | Our code + local SQLite | Attempt record, deltas vs previous attempt |
 
 ### 3.1 Chunked transcription (needed for 5–10 minute talks)
+
+Not built yet: today the whole recording is transcribed after the talk (large-q8 on an M2: about 11 s per minute of speech), cached next to the audio, while the review of the previous attempt can already run on the server. The plan below is the next optimisation.
 
 - Audio is cut at the nearest silence after every ~30s and each chunk is sent to `whisper-server` while recording continues.
 - Chunks overlap by 1s; words in the overlap are de-duplicated by timestamp.
@@ -162,7 +165,7 @@ Suggested pauses are advice, not errors: they don't lower the score directly. Mi
 - **Praat:** not an AI. It is a free, open-source phonetics program from the University of Amsterdam (Paul Boersma and David Weenink), used by linguists for decades to **measure speech acoustics**: pitch, loudness, pauses, formants. It does exact signal processing, so pause lengths and pitch values are measured, not guessed. We run it headless with a script, as a separate process (GPL-safe).
 - **Metrics in TypeScript:** numbers must be deterministic and testable; LLMs miscount.
 - **gpt-oss-120b on Groq:** a 120B model writes much better rephrasings, judges repetition sensibly, and is far more reliable at judging **technical correctness** than a 9B local model. Only text is sent, through our backend, so no API key ships in the desktop app.
-- **Qwen3.5 9B (Q4_K_M) via `llama-server`:** offline fallback with the same prompts and JSON schemas; clearly labelled "offline feedback".
+- **Inngest (background job):** the review runs on the server as durable, individually retried steps (key points → language → content), so it finishes even if the desktop disconnects or closes; the desktop follows it over Inngest realtime and polls as a fallback.
 
 ### 3.5 What the LLM receives (never audio)
 
@@ -361,12 +364,12 @@ Content accuracy is **not** in the score. The product measures English; a studen
 │                                                                                    │
 │ TypeScript orchestration                                                           │
 │  record (30s chunks) → whisper-server (live) → praat → metrics + repetition        │
-│  → backend LLM (or local fallback) → score → SQLite                                │
+│  → backend Inngest job (Groq LLM) → score → SQLite                                │
 │                                                                                    │
 │ Sidecars (bundled per platform)      Local data                                   │
-│  whisper-server (whisper.cpp)         SQLite via tauri-plugin-sql + Drizzle       │
-│  praat                                audio (.opus) in app data dir                │
-│  llama-server (offline fallback)      models (downloaded on first run)             │
+│  whisper-server (whisper.cpp)         SQLite via rusqlite commands + Drizzle      │
+│  praat                                audio (.webm/.m4a) in app data dir           │
+│                                       models (downloaded on first run)             │
 └──────────────────────────────────────────────┬─────────────────────────────────────┘
                                                │ HTTPS: typed oRPC client
                                                │ (text only, never audio)
@@ -385,7 +388,7 @@ Content accuracy is **not** in the score. The product measures English; a studen
 
 - **Tauri 2**, React 19, TypeScript 7, TanStack Router (file routes, code splitting), shadcn `aria-nova` on react-aria-components, Tailwind v4.
 - Almost no Rust: plugin registration and, if needed, `cpal` mic capture.
-- Plugins: `tauri-plugin-shell` (sidecars), `tauri-plugin-sql` (SQLite), `tauri-plugin-fs` (audio files), `tauri-plugin-http` (backend calls), Stronghold/keychain (session token).
+- Praat runs as a Tauri `externalBin` sidecar started from Rust (`std::process`); whisper.cpp is linked through `whisper-rs`. Plugins: `rusqlite` behind two Tauri commands with Drizzle's sqlite-proxy on top (SQLite; positional rows and batch transactions, which `tauri-plugin-sql` lacks), `tauri-plugin-fs` (audio files), `tauri-plugin-http` (backend calls), Stronghold/keychain (session token).
 - Uses the **same typed oRPC router types** as the web app, so request, response and error types are shared end to end.
 - Charts: a lightweight chart library (decided at implementation) for fillers per minute, WPM over time, and pitch.
 
@@ -399,7 +402,7 @@ Content accuracy is **not** in the score. The product measures English; a studen
 
 - Audio and speech models stay local: private, free, no upload of large recordings.
 - The LLM part needs a large model for good rephrasings, sensible repetition judgement and correct technical checks; running it via our backend keeps keys secret and caps usage per student.
-- If the backend is down, the app still works with the local fallback model.
+- If the backend is down, recording and local analysis still work; reviews resume when it's back.
 
 ---
 
@@ -411,8 +414,8 @@ Content accuracy is **not** in the score. The product measures English; a studen
 | ASR runtime | whisper.cpp `whisper-server` | ~10 MB | MIT | Metal / CPU / Vulkan / CUDA builds |
 | Prosody | Praat CLI (not AI: acoustic measurement) | ~40 MB | GPL | Separate process only |
 | Feedback LLM | gpt-oss-120b on Groq | cloud | Apache-2.0 model, Groq ToS | ~10–14K tokens per 10-minute attempt; free tier won't cover many students, plan for the paid tier |
-| Offline LLM | Qwen3.5 9B Q4_K_M | 6.6 GB disk, ~7.5–8 GB RAM (8K context) | Apache-2.0 | Optional download; slow on long talks (minutes) |
-| LLM runtime | llama.cpp `llama-server` | ~20 MB | MIT | JSON-schema constrained output |
+| Feedback fallback | gpt-oss-20b on Groq | cloud | Apache-2.0 model, Groq ToS | Used from the third attempt of a failing step |
+| Background jobs | Inngest (dev server locally, Inngest Cloud in production) | — | — | Durable steps, retries, realtime status |
 | Key points generation | gpt-oss-120b on Groq (server, cached) | cloud | as above | Once per topic and target |
 
 ### 6.1 Machine requirements
@@ -420,7 +423,6 @@ Content accuracy is **not** in the score. The product measures English; a studen
 | Mode | RAM | Disk | Notes |
 | --- | --- | --- | --- |
 | Online (default) | 8 GB works, peak ~2.5 GB | ~2 GB + ~2 MB per 10-min recording | Internet needed for feedback |
-| Offline fallback enabled | 16 GB, peak ~8 GB | ~9 GB | Whisper is unloaded before Qwen loads |
 
 Before loading any model the app checks free RAM; if too low it refuses with a clear message instead of freezing the machine.
 
@@ -443,8 +445,8 @@ Before loading any model the app checks free RAM; if too low it refuses with a c
 
 | Table | Key columns |
 | --- | --- |
-| `rehearsals` | id (UUID v7), topic_id + title snapshot, target_seconds, created_at, updated_at |
-| `attempts` | id (UUID v7), rehearsal_id, key points snapshot (json), target_seconds, duration_ms, score, subscores (json), audio_path, created_at, updated_at |
+| `rehearsals` | id (UUID v7), student_id, topic_id + title snapshot, target_seconds, created_at, updated_at |
+| `attempts` | id (UUID v7), rehearsal_id, status (recording / processing / ready / interrupted / failed), spoken_seconds, recording_path + mime_type, score, feedback (json: transcript, better version, subscores, key points, wpm), created_at, updated_at |
 | `attempt_feedback` | attempt_id, metrics (json), fillers (json), repetition (json), language (json), content (json), model, offline (bool) |
 | `settings` | key, value |
 
@@ -464,8 +466,10 @@ All procedures declare their errors; validation failures return 422 with prettif
 | `topics.list` | shared topics + the student's own (own first) |  |
 | `topics.create` | save a typed topic; returns the existing one for a known title | 422 on a title outside 3–120 characters |
 | `keyPoints.get` | key points for topic + target (generate and cache if missing) | `KEY_POINTS_UNAVAILABLE` 503 |
-| `feedback.language` | Call A | `FEEDBACK_RATE_LIMITED` 429 |
-| `feedback.content` | Call B | `FEEDBACK_RATE_LIMITED` 429 |
+| `feedback.submit` | store transcript + metrics, start the Inngest review (Call A, Call B; key points cached); idempotent per attempt | `FEEDBACK_RATE_LIMITED` 429, `FEEDBACK_UNAVAILABLE` 503 |
+| `feedback.get` | status, stage and result of a review | `NOT_FOUND` 404 |
+| `feedback.subscribe` | realtime token for the review's channel (stage changes) | `NOT_FOUND` 404, `FEEDBACK_UNAVAILABLE` 503 |
+| `feedback.remove` | cancel and delete a review (attempt deleted) |  |
 
 Initial per-student limits: 30 feedback attempts/day, 20 custom topics/day. Tunable constants.
 
@@ -486,13 +490,15 @@ Initial per-student limits: 30 feedback attempts/day, 20 custom topics/day. Tuna
 
 | Failure | Behaviour |
 | --- | --- |
-| No internet / backend down | Topics cached locally from last fetch; custom key points and feedback use local Qwen if downloaded; otherwise the attempt is saved and feedback runs when online |
-| Groq rate limit hit | Backend returns `FEEDBACK_RATE_LIMITED`; desktop offers local fallback or "try again later" |
+| No internet / backend down | Topics cached locally from last fetch; the local analysis still runs and the review request retries by itself (5 s → 60 s) until the backend answers; the attempt stays "analysing" meanwhile |
+| Groq rate limit hit | The Inngest step waits for Groq's retry-after and retries; a student over the daily limit gets `FEEDBACK_RATE_LIMITED` and can retry tomorrow |
 | Not enough RAM | Refuse to load the model with a clear message |
 | Transcription slower than real time | Switch to CrisperWhisper turbo for the rest of the session |
 | Mic permission denied | Explain per OS how to enable it |
+| Mic unplugged mid-talk | Recording stops; get feedback on what was said (≥ 30s) or start over |
+| Disk write fails mid-talk | Chunks are also kept in memory; the file is rewritten on stop, else Try again / Discard |
 | Recording shorter than 30s | Finish stays disabled until 30s; Cancel discards it |
-| App closed mid-recording | Saved chunks kept; offer to analyse the partial recording on next launch |
+| App closed mid-recording | Audio is appended every second; on next launch the attempt becomes "interrupted" (≥ 30s) or is deleted with its file |
 
 ---
 
@@ -504,7 +510,6 @@ Initial per-student limits: 30 feedback attempts/day, 20 custom topics/day. Tuna
 | Final chunk after Stop | ~3–5s | ~10–30s |
 | Praat + metrics + repetition (10 min audio) | ~3–5s | ~5–10s |
 | Feedback via Groq (2 calls, 10 min talk) | ~8–20s | ~8–20s |
-| Feedback via local Qwen | ~2–5 min | ~5–15 min |
 
 The report streams in: summary, fillers, repetition, pauses and pace appear first (no AI needed); language sections next; content check last.
 
@@ -542,7 +547,7 @@ Target: 150–200 topics at launch, each broad enough to fill 10 minutes.
 4. **Content check:** `feedback.content`; collapsed content section.
 5. **Auth on desktop:** bearer-token login, keychain storage, per-student rate limits.
 6. **Progression:** length ladder (1 → 4 → 7 → 10 min), level suggestions, rehearsal threads.
-7. **Offline fallback:** optional Qwen download, llama-server sidecar, offline labelling.
+7. **Background reviews:** Inngest job with realtime status, retries and model fallback (done).
 8. **Sync (optional):** attempt summaries to Postgres for multi-device progress.
 
 ---

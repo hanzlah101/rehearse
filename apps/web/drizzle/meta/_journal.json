@@ -15,6 +15,20 @@
       "when": 1791743042382,
       "tag": "0001_pink_sabra",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791752141124,
+      "tag": "0002_tiny_scarlet_witch",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791890404384,
+      "tag": "0003_nosy_multiple_man",
+      "breakpoints": true
     }
   ]
 }

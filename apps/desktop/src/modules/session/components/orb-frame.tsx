@@ -13,10 +13,12 @@ const ORB_COLORS: [string, string] = ["#D6E2FF", "#8AA9F2"];
 // keeps a fixed size and scales with a transform, so the WebGL canvas never
 // resizes (resizing it mid-animation redraws late and jumps).
 export function OrbFrame({
+  getVolume,
   isCompact = false,
   progress,
   state,
 }: {
+  getVolume?: () => number;
   isCompact?: boolean;
   progress?: number;
   state: OrbState;
@@ -61,7 +63,7 @@ export function OrbFrame({
           </svg>
         )}
         <div className="absolute inset-2">
-          <Orb colors={ORB_COLORS} state={state} />
+          <Orb colors={ORB_COLORS} getVolume={getVolume} state={state} />
         </div>
       </div>
     </div>

@@ -1,21 +1,36 @@
 import { ORPCError } from "@orpc/client";
-import { IconAlertTriangleFilled, IconCloudOff } from "@tabler/icons-react";
+import {
+  IconAlertTriangleFilled,
+  IconCloudOff,
+  IconDatabaseExclamation,
+} from "@tabler/icons-react";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { useRouter, useRouterState } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
-import { getErrorMessage } from "@/modules/common/lib/errors";
+import { LocalDataError } from "@/modules/common/db/init";
+import { getErrorMessage, isNetworkError } from "@/modules/common/lib/errors";
 
 // Replaces the whole app (title bar included) when a route fails, so it keeps
-// its own drag region. Transport failures read as "offline"; declared API
-// errors show the server's message.
+// its own drag region. Local database failures say so, network failures read as
+// "offline", declared API errors show the server's message, and anything else
+// (a bug) shows its own message.
 export function ErrorPage({ error }: ErrorComponentProps) {
   const router = useRouter();
   const isRetrying = useRouterState({
     select: (state) => state.status === "pending",
   });
-  const isOffline = !(error instanceof ORPCError && error.defined);
-  const Icon = isOffline ? IconCloudOff : IconAlertTriangleFilled;
+  const isLocal = error instanceof LocalDataError;
+  const isOffline = isNetworkError(error);
+  let Icon = IconAlertTriangleFilled;
+  let title = "Something went wrong";
+  if (isLocal) {
+    Icon = IconDatabaseExclamation;
+    title = "Couldn’t open your rehearsals";
+  } else if (isOffline) {
+    Icon = IconCloudOff;
+    title = "Can’t reach Rehearse";
+  }
 
   return (
     <div className="flex h-svh flex-col">
@@ -26,11 +41,13 @@ export function ErrorPage({ error }: ErrorComponentProps) {
             <Icon className="size-7" />
           </span>
           <div className="flex max-w-sm flex-col gap-2">
-            <h1 className="text-3xl font-semibold text-balance">
-              {isOffline ? "Can’t reach Rehearse" : "Something went wrong"}
-            </h1>
+            <h1 className="text-3xl font-semibold text-balance">{title}</h1>
             <p className="text-pretty text-muted-foreground">
-              {getErrorMessage(error)}
+              {error instanceof Error &&
+              !isOffline &&
+              !(error instanceof ORPCError)
+                ? error.message
+                : getErrorMessage(error)}
             </p>
           </div>
         </div>

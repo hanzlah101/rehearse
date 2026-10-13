@@ -19,6 +19,12 @@ export const env = createEnv({
       )
       .pipe(z.array(z.url())),
     DATABASE_URL: z.url({ protocol: /^postgres(?:ql)?$/u }),
+    // Groq key for the feedback LLM (server only; the desktop never sees it).
+    GROQ_API_KEY: z.string().min(1),
+    // Inngest Cloud keys. Unset in development: the local Inngest dev server
+    // (bun run inngest:dev) needs neither.
+    INNGEST_EVENT_KEY: z.string().min(1).optional(),
+    INNGEST_SIGNING_KEY: z.string().min(1).optional(),
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),
