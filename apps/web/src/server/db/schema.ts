@@ -10,6 +10,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import { FEEDBACK_DEFAULT_DAILY_SECONDS } from "@/server/modules/feedback/feedback.constants";
 import type {
   FeedbackJobStatus,
   FeedbackResult,
@@ -23,6 +24,10 @@ export const students = pgTable("students", {
   studentId: text("student_id").notNull().unique(),
   name: text("name").notNull(),
   passwordHash: text("password_hash").notNull(),
+  // Seconds of speech the student may send for review per rolling 24 hours.
+  dailyLimitSeconds: integer("daily_limit_seconds")
+    .notNull()
+    .default(FEEDBACK_DEFAULT_DAILY_SECONDS),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -136,7 +141,7 @@ export const feedbackJobs = pgTable(
 );
 
 // One row per review a student starts, never deleted with the review, so
-// deleting reviews can't reset the daily limit (FEEDBACK_DAILY_LIMIT).
+// deleting reviews can't reset the daily limit (students.dailyLimitSeconds).
 export const feedbackRequests = pgTable(
   "feedback_requests",
   {
@@ -144,6 +149,8 @@ export const feedbackRequests = pgTable(
     studentId: uuid("student_id")
       .notNull()
       .references(() => students.id, { onDelete: "cascade" }),
+    // The reviewed talk's length, rounded up; counts toward the daily limit.
+    spokenSeconds: integer("spoken_seconds").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

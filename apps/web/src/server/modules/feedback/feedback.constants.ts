@@ -1,6 +1,7 @@
-// Feedback reviews a student may start per rolling 24 hours (PLAN §8).
-// Re-submitting the same attempt doesn't count again.
-export const FEEDBACK_DAILY_LIMIT = 30;
+// Seconds of speech a new student may send for review per rolling 24 hours
+// (stored per student in students.daily_limit_seconds). Re-submitting the
+// same attempt doesn't count again.
+export const FEEDBACK_DEFAULT_DAILY_SECONDS = 30 * 60;
 
 // gpt-oss on Groq (PLAN §3). The smaller model takes over once a step has
 // failed twice with the large one.

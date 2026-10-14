@@ -35,6 +35,7 @@ import { daysAgo, formatNumber, formatPercent, formatWhen } from "@/lib/format";
 import { LogoutDialog } from "@/modules/auth/components/logout-dialog";
 import { useSession } from "@/modules/auth/queries/session";
 import { useDeleteRehearsal } from "@/modules/history/actions/delete-rehearsal";
+import { UsageMeter } from "@/modules/history/components/usage-meter";
 import type { RehearsalSummary } from "@/modules/history/lib/rehearsals";
 import { rehearsalsQueryOptions } from "@/modules/history/queries/rehearsals";
 
@@ -277,6 +278,8 @@ export function HistorySidebar({ className }: { className?: string }) {
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialog>
+
+      <UsageMeter />
 
       <SidebarFooter>
         <Facehash
