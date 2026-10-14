@@ -28,7 +28,7 @@ bun --filter desktop lint:rust     # cargo clippy, warnings = errors
 bun --filter desktop format:rust   # cargo fmt
 bun test --cwd apps/desktop        # unit tests (*.test.ts, bun:test) for non-trivial logic
 bun --filter desktop db:generate   # desktop SQLite migration from schema changes (applied on launch)
-bun --filter desktop praat:fetch   # Praat sidecar into src-tauri/binaries (needed before cargo builds)
+bun --filter desktop praat:fetch   # Praat sidecar into src-tauri/binaries (needed before cargo builds; tauri dev/build run it via before*Command with the target triple)
 ```
 
 Linting/formatting is **Ultracite on Oxlint + Oxfmt** (no Biome, ESLint, or Prettier). Config: root `oxlint.config.mts` (presets `core`, `react`, `shadcn` + `@shadcn/lint` plugin) and `oxfmt.config.mts`; `apps/web/oxlint.config.ts` extends root and adds the `tanstack` preset. `@shadcn/lint` flags class names Tailwind doesn't know. Types: `type` aliases, not `interface` (lint-enforced everywhere; the only exception is a `declare module` augmentation, which needs `interface` and gets a `// oxlint-disable-next-line typescript/consistent-type-definitions` on that line), derive with `Pick`/`Omit`/`Extract`/`z.infer`/`$inferSelect` instead of redeclaring shapes. Style: `function` declarations for named functions (convention, `func-style` is off) and components (enforced), arrows only inline (e.g. callbacks); the rules enforce kebab-case filenames, sorted object keys, no `||` for defaults (use `??`), no unsafe `as` casts. Run `bun run format && bun run lint && bun run typecheck` before finishing any task.
