@@ -7,6 +7,8 @@ export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 export const SESSION_TOKEN_BYTES = 32;
 
 export const CREDENTIAL_MAX_LENGTH = 256;
+export const PASSWORD_MIN_LENGTH = 8;
+export const NAME_MAX_LENGTH = 100;
 
 export const DUMMY_PASSWORD_BYTES = 32;
 

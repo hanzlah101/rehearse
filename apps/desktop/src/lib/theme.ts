@@ -1,13 +1,21 @@
 import { useSyncExternalStore } from "react";
 
-// Follows the OS until the user picks a theme, then remembers their choice.
+export type Theme = "dark" | "light" | "system";
+
+// Follows the OS ("system", nothing stored) until the user picks light or
+// dark in Settings, then remembers their choice.
 const STORAGE_KEY = "theme";
 const darkScheme = window.matchMedia("(prefers-color-scheme: dark)");
 const listeners = new Set<() => void>();
 
-function isDark() {
+function getTheme(): Theme {
   const stored = localStorage.getItem(STORAGE_KEY);
-  return stored === null ? darkScheme.matches : stored === "dark";
+  return stored === "dark" || stored === "light" ? stored : "system";
+}
+
+function isDark() {
+  const theme = getTheme();
+  return theme === "system" ? darkScheme.matches : theme === "dark";
 }
 
 function sync() {
@@ -24,8 +32,12 @@ darkScheme.addEventListener("change", sync);
 // re-enable transitions while a later swap is still painting.
 let restoreFrame = 0;
 
-function setDark(dark: boolean) {
-  localStorage.setItem(STORAGE_KEY, dark ? "dark" : "light");
+function setTheme(theme: Theme) {
+  if (theme === "system") {
+    localStorage.removeItem(STORAGE_KEY);
+  } else {
+    localStorage.setItem(STORAGE_KEY, theme);
+  }
   // Swap colors instantly: mismatched per-element transitions look like a flicker.
   const html = document.documentElement;
   html.classList.add("no-transitions");
@@ -45,8 +57,12 @@ function subscribe(listener: () => void) {
   };
 }
 
+function useTheme() {
+  return useSyncExternalStore(subscribe, getTheme);
+}
+
 function useIsDark() {
   return useSyncExternalStore(subscribe, isDark);
 }
 
-export { setDark, useIsDark };
+export { setTheme, useIsDark, useTheme };

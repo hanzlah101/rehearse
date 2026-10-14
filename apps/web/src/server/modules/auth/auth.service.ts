@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 
 import { hash, verify } from "@node-rs/argon2";
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, ne } from "drizzle-orm";
 
 import { db } from "@/server/db/client";
 import { sessions, students } from "@/server/db/schema";
@@ -12,7 +12,11 @@ import {
   SESSION_TOKEN_BYTES,
   SESSION_TTL_MS,
 } from "@/server/modules/auth/auth.constants";
-import type { LoginInput } from "@/server/modules/auth/auth.schemas";
+import type {
+  ChangePasswordInput,
+  LoginInput,
+  UpdateProfileInput,
+} from "@/server/modules/auth/auth.schemas";
 
 export type SessionMetadata = Pick<Session, "ipAddress" | "userAgent">;
 
@@ -54,6 +58,53 @@ export async function authenticate({ password, studentId }: LoginInput) {
   const { passwordHash: _, ...publicStudent } = student;
 
   return publicStudent;
+}
+
+// Profile
+
+export async function updateProfile(id: string, { name }: UpdateProfileInput) {
+  const [student] = await db
+    .update(students)
+    .set({ name })
+    .where(eq(students.id, id))
+    .returning(publicStudentColumns);
+
+  return student ?? null;
+}
+
+// Checks the current password, saves the new one and signs out every other
+// session (`keepToken` is the one making the change). False when the current
+// password is wrong.
+export async function changePassword(
+  id: string,
+  { currentPassword, newPassword }: ChangePasswordInput,
+  keepToken: string
+) {
+  const [student] = await db
+    .select({ passwordHash: students.passwordHash })
+    .from(students)
+    .where(eq(students.id, id))
+    .limit(1);
+
+  if (
+    student === undefined ||
+    !(await verify(student.passwordHash, currentPassword))
+  ) {
+    return false;
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+
+  await db.transaction(async (tx) => {
+    await tx.update(students).set({ passwordHash }).where(eq(students.id, id));
+    await tx
+      .delete(sessions)
+      .where(
+        and(eq(sessions.studentId, id), ne(sessions.id, hashToken(keepToken)))
+      );
+  });
+
+  return true;
 }
 
 // Sessions
