@@ -3,6 +3,7 @@ import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 
 import { Toaster } from "@/components/ui/sonner";
 import { sessionQueryOptions } from "@/modules/auth/queries/session";
+import { UpdateChecker } from "@/modules/common/components/update-checker";
 import { openDatabase } from "@/modules/common/db/init";
 import { ErrorPage } from "@/modules/common/pages/error-page";
 import { SplashPage } from "@/modules/common/pages/splash-page";
@@ -18,6 +19,7 @@ function RootLayout() {
         <Outlet />
       </div>
       <Toaster />
+      <UpdateChecker />
     </>
   );
 }

@@ -41,5 +41,14 @@
       "entitlements": "./Entitlements.plist"
     },
     "externalBin": ["binaries/praat"]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/hanzlah101/rehearse/releases/latest/download/latest.json"
+      ],
+      "pubkey": "",
+      "requireSignedVersion": true
+    }
   }
 }
