@@ -29,7 +29,7 @@ export type Rehearsal = RehearsalRow & {
 
 export type RehearsalSummary = Pick<
   RehearsalRow,
-  "id" | "topic" | "updatedAt"
+  "id" | "targetSeconds" | "topic" | "topicId" | "updatedAt"
 > & {
   attemptCount: number;
   latestScore: number | null;
@@ -46,7 +46,9 @@ export async function listRehearsals(
   const rows = await db
     .select({
       id: rehearsals.id,
+      targetSeconds: rehearsals.targetSeconds,
       topic: rehearsals.topic,
+      topicId: rehearsals.topicId,
       updatedAt: rehearsals.updatedAt,
     })
     .from(rehearsals)
