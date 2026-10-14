@@ -8,6 +8,7 @@ import { students } from "@/server/db/schema";
 import { CREDENTIAL_MAX_LENGTH } from "@/server/modules/auth/auth.constants";
 import { loginInputSchema } from "@/server/modules/auth/auth.schemas";
 import { hashPassword } from "@/server/modules/auth/auth.service";
+import { FEEDBACK_DEFAULT_DAILY_SECONDS } from "@/server/modules/feedback/feedback.constants";
 
 function required(label: string) {
   return (value: string | undefined) => {
@@ -67,18 +68,36 @@ const plainPassword = ask(
   })
 );
 
+const dailyLimitMinutes = Number(
+  ask(
+    await text({
+      initialValue: String(FEEDBACK_DEFAULT_DAILY_SECONDS / 60),
+      message: "Minutes of speaking reviewed per day",
+      validate: (value) =>
+        /^[1-9]\d*$/u.test(value?.trim() ?? "")
+          ? undefined
+          : "Enter a whole number of minutes (1 or more).",
+    })
+  ).trim()
+);
+const dailyLimitSeconds = dailyLimitMinutes * 60;
+
 const progress = spinner();
 progress.start("Saving");
 
 const passwordHash = await hashPassword(plainPassword);
 await db
   .insert(students)
-  .values({ name, passwordHash, studentId })
+  .values({ dailyLimitSeconds, name, passwordHash, studentId })
   .onConflictDoUpdate({
-    set: { name, passwordHash },
+    set: { dailyLimitSeconds, name, passwordHash },
     target: students.studentId,
   });
 
-progress.stop(`Saved ${name} (${studentId}).`);
-outro("Re-run with the same student ID to rename or reset the password.");
+progress.stop(
+  `Saved ${name} (${studentId}), ${dailyLimitMinutes} min of reviews a day.`
+);
+outro(
+  "Re-run with the same student ID to rename, reset the password or change the limit."
+);
 process.exit(0);

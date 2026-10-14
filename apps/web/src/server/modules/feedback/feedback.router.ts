@@ -10,12 +10,14 @@ import {
   feedbackJobParamsSchema,
   feedbackJobSchema,
   feedbackSubscriptionSchema,
+  feedbackUsageSchema,
   submitFeedbackInputSchema,
 } from "@/server/modules/feedback/feedback.schemas";
 import {
   createFeedbackSubscription,
   deleteFeedbackJob,
   getFeedbackJob,
+  getFeedbackUsage,
   submitFeedback,
 } from "@/server/modules/feedback/feedback.service";
 import { protectedOS } from "@/server/orpc";
@@ -44,6 +46,22 @@ const submit = protectedOS
   .handler(
     async ({ context, input }) =>
       await submitFeedback(context.session.student.id, input)
+  );
+
+const usage = protectedOS
+  .meta(
+    openapi({
+      description:
+        "Speaking time sent for review in the last 24 hours and the student's limit. New reviews are refused while the limit is used up.",
+      method: "GET",
+      path: "/feedback/usage",
+      summary: "Get review usage",
+      tags: TAGS,
+    })
+  )
+  .output(feedbackUsageSchema)
+  .handler(
+    async ({ context }) => await getFeedbackUsage(context.session.student.id)
   );
 
 const get = protectedOS
@@ -127,4 +145,4 @@ const remove = protectedOS
     await deleteFeedbackJob(context.session.student.id, input.id);
   });
 
-export const feedbackRouter = { get, remove, submit, subscribe };
+export const feedbackRouter = { get, remove, submit, subscribe, usage };

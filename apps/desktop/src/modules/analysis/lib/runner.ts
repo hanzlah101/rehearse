@@ -41,6 +41,7 @@ import {
   LOCAL_QUERY_KEY,
   updateCachedAttempt,
 } from "@/modules/history/queries/rehearsals";
+import { usageQueryOptions } from "@/modules/history/queries/usage";
 
 // The background analysis job (PLAN §3). Local work runs one attempt at a
 // time (it loads a 1.6 GB model): decode → WAV → CrisperWhisper → Praat →
@@ -170,6 +171,14 @@ function forget(id: string) {
 
 async function refresh() {
   await context?.queryClient.invalidateQueries({ queryKey: LOCAL_QUERY_KEY });
+}
+
+// The sidebar's speaking-time meter, after a submission counted (or was
+// refused) on the server.
+async function refreshUsage() {
+  await context?.queryClient.invalidateQueries({
+    queryKey: usageQueryOptions.queryKey,
+  });
 }
 
 function throwIfStopped(signal: AbortSignal) {
@@ -343,10 +352,12 @@ async function requestReview(
     const { data, error } = await safe(api.feedback.submit(input));
     if (error === null) {
       update(target.id, { isOffline: false, serverStage: data.stage });
+      void refreshUsage();
       return data;
     }
     if (isDefinedError(error)) {
       if (error.code === "FEEDBACK_RATE_LIMITED") {
+        void refreshUsage();
         throw new AnalysisError(error.message);
       }
       if (error.code === "UNAUTHORIZED") {
