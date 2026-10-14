@@ -7,6 +7,14 @@
 /* Toggled from the OS colour scheme by a script in the root route's head. */
 @custom-variant dark (&:is(.dark *));
 
+@theme {
+  /* The hero headline scales with the viewport so its longest line ("Say it,
+     um, better", about 6× the font size wide) fits on one line at any width;
+     otherwise dropping "um" would reflow the text. */
+  --text-hero: clamp(2.5rem, 14.5vw, 8rem);
+  --text-hero--line-height: 1;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -16,6 +24,12 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+  }
+  /* Tailwind v4 resets buttons to the default cursor; on the site, anything
+     you can press shows the pointer unless it's disabled. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    @apply cursor-pointer;
   }
   ::selection {
     @apply bg-primary/25;
