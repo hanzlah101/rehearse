@@ -1,8 +1,11 @@
 import { cn } from "cn";
 import type * as React from "react";
 import { useEffect, useRef, useState } from "react";
+import { Pressable } from "react-aria-components";
 import { VList } from "virtua";
 import type { VListHandle } from "virtua";
+
+import { ContextMenuTrigger } from "@/components/ui/context-menu";
 
 // Sits on the window frame (AppLayout paints it), so it has no surface of its
 // own.
@@ -65,7 +68,7 @@ function SidebarList<T>({
   "aria-label": ariaLabel,
   emptyState,
   onAction,
-  onItemContextMenu,
+  renderContextMenu,
   renderItem,
   rows,
   selectedId,
@@ -73,7 +76,8 @@ function SidebarList<T>({
   "aria-label": string;
   emptyState: React.ReactNode;
   onAction: (item: T) => void;
-  onItemContextMenu?: (item: T, target: Element) => void;
+  // An item's context menu (a <ContextMenu>), opened at the pointer.
+  renderContextMenu?: (item: T) => React.ReactNode;
   renderItem: (item: T) => React.ReactNode;
   rows: SidebarListRow<T>[];
   selectedId: string | null;
@@ -170,6 +174,39 @@ function SidebarList<T>({
     focusRow(target);
   }
 
+  function renderOption(
+    row: Extract<SidebarListRow<T>, { kind: "item" }>,
+    index: number
+  ) {
+    return (
+      <div
+        aria-posinset={items.indexOf(index) + 1}
+        aria-selected={row.id === selectedId}
+        aria-setsize={items.length}
+        className="group/item flex cursor-default flex-col gap-0.5 rounded-lg px-2.5 py-1.5 text-sm text-sidebar-foreground/85 outline-hidden transition-colors duration-150 ease-out select-none hover:text-sidebar-foreground not-data-selected:hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid not-data-selected:active:bg-sidebar-accent motion-reduce:transition-none dark:not-data-selected:hover:bg-input/15 data-selected:bg-card data-selected:text-sidebar-foreground data-selected:shadow-xs data-selected:ring-1 data-selected:ring-border/60 data-selected:ring-inset dark:data-selected:bg-input/25 dark:data-selected:shadow-none"
+        data-row={index}
+        // The data-selected variant matches "true", as React Aria sets it.
+        data-selected={row.id === selectedId ? "true" : undefined}
+        data-slot="sidebar-list-item"
+        onClick={() => {
+          setFocusedRow(index);
+          onAction(row.item);
+        }}
+        onFocus={() => {
+          setFocusedRow(index);
+        }}
+        onKeyDown={(event) => {
+          onKeyDown(event, index);
+        }}
+        // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- rows of the custom listbox above
+        role="option"
+        tabIndex={index === tabRow ? 0 : -1}
+      >
+        {renderItem(row.item)}
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <div className="flex-1 px-5 py-6 text-center text-sm text-muted-foreground">
@@ -206,35 +243,14 @@ function SidebarList<T>({
             </div>
           ) : (
             <div className="px-3 py-px" key={row.id} role="presentation">
-              <div
-                aria-posinset={items.indexOf(index) + 1}
-                aria-selected={row.id === selectedId}
-                aria-setsize={items.length}
-                className="group/item flex cursor-default flex-col gap-0.5 rounded-lg px-2.5 py-1.5 text-sm text-sidebar-foreground/85 outline-hidden transition-colors duration-150 ease-out select-none hover:text-sidebar-foreground not-data-selected:hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid not-data-selected:active:bg-sidebar-accent motion-reduce:transition-none dark:not-data-selected:hover:bg-input/15 data-selected:bg-card data-selected:text-sidebar-foreground data-selected:shadow-xs data-selected:ring-1 data-selected:ring-border/60 data-selected:ring-inset dark:data-selected:bg-input/25 dark:data-selected:shadow-none"
-                data-row={index}
-                // The data-selected variant matches "true", as React Aria sets it.
-                data-selected={row.id === selectedId ? "true" : undefined}
-                data-slot="sidebar-list-item"
-                onClick={() => {
-                  setFocusedRow(index);
-                  onAction(row.item);
-                }}
-                onContextMenu={(event) => {
-                  event.preventDefault();
-                  onItemContextMenu?.(row.item, event.currentTarget);
-                }}
-                onFocus={() => {
-                  setFocusedRow(index);
-                }}
-                onKeyDown={(event) => {
-                  onKeyDown(event, index);
-                }}
-                // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- rows of the custom listbox above
-                role="option"
-                tabIndex={index === tabRow ? 0 : -1}
-              >
-                {renderItem(row.item)}
-              </div>
+              {renderContextMenu === undefined ? (
+                renderOption(row, index)
+              ) : (
+                <ContextMenuTrigger>
+                  <Pressable>{renderOption(row, index)}</Pressable>
+                  {renderContextMenu(row.item)}
+                </ContextMenuTrigger>
+              )}
             </div>
           )
         )}
