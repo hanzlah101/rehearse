@@ -11,7 +11,7 @@ import {
   OverlayTriggerStateContext,
 } from "react-aria-components";
 
-import { Menu, MenuItem, MenuPopover } from "@/components/ui/menu";
+import { ContextMenu, ContextMenuItem } from "@/components/ui/context-menu";
 import { LogoutDialog } from "@/modules/auth/components/logout-dialog";
 import { StudentAvatar } from "@/modules/auth/components/student-avatar";
 import { useSession } from "@/modules/auth/queries/session";
@@ -45,28 +45,27 @@ export function AccountMenu() {
             className="size-4 shrink-0 text-muted-foreground group-hover/account:text-sidebar-foreground"
           />
         </Button>
-        <MenuPopover className="w-(--trigger-width)" placement="top start">
-          <Menu
-            aria-label="Account"
-            onAction={(key) => {
-              if (key === "settings") {
-                void navigate({ to: "/settings" });
-                sheet?.close();
-              } else {
-                setIsLoggingOut(true);
-              }
-            }}
-          >
-            <MenuItem id="settings">
-              <IconSettingsFilled />
-              Settings
-            </MenuItem>
-            <MenuItem id="logout" variant="destructive">
-              <IconLogout />
-              Log out
-            </MenuItem>
-          </Menu>
-        </MenuPopover>
+        <ContextMenu
+          aria-label="Account"
+          className="w-(--trigger-width)"
+          onAction={(key) => {
+            if (key === "settings") {
+              void navigate({ to: "/settings" });
+              sheet?.close();
+            } else {
+              setIsLoggingOut(true);
+            }
+          }}
+        >
+          <ContextMenuItem id="settings">
+            <IconSettingsFilled />
+            Settings
+          </ContextMenuItem>
+          <ContextMenuItem id="logout" variant="destructive">
+            <IconLogout />
+            Log out
+          </ContextMenuItem>
+        </ContextMenu>
       </MenuTrigger>
       <LogoutDialog isOpen={isLoggingOut} onOpenChange={setIsLoggingOut} />
     </>
