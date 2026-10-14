@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { match } from "ts-pattern";
 
+import { clearToken } from "@/modules/auth/lib/token";
 import { sessionQueryOptions } from "@/modules/auth/queries/session";
 import { getErrorMessage } from "@/modules/common/lib/errors";
 import { orpc } from "@/modules/common/lib/orpc";
@@ -31,7 +32,8 @@ export function useLogout() {
           )
           .exhaustive(() => toast.error(errorMessage));
       },
-      onSuccess: () => {
+      onSuccess: async () => {
+        await clearToken();
         // Drop everything cached for the previous student.
         queryClient.clear();
         queryClient.setQueryData(sessionQueryOptions.queryKey, null);

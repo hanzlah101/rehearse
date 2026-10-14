@@ -1,3 +1,4 @@
+mod auth;
 mod db;
 mod speech;
 
@@ -16,6 +17,9 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            auth::auth_token_get,
+            auth::auth_token_set,
+            auth::auth_token_clear,
             db::db_execute,
             db::db_batch,
             speech::speech_model_status,
