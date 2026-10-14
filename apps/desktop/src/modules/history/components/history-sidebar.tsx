@@ -6,7 +6,6 @@ import {
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { cn } from "cn";
-import { Facehash } from "facehash";
 import { useContext, useRef, useState } from "react";
 import { OverlayTriggerStateContext, useFilter } from "react-aria-components";
 
@@ -32,15 +31,11 @@ import {
 import type { SidebarListRow } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
 import { daysAgo, formatNumber, formatPercent, formatWhen } from "@/lib/format";
-import { LogoutDialog } from "@/modules/auth/components/logout-dialog";
+import { AccountMenu } from "@/modules/auth/components/account-menu";
 import { useSession } from "@/modules/auth/queries/session";
 import { useDeleteRehearsal } from "@/modules/history/actions/delete-rehearsal";
 import type { RehearsalSummary } from "@/modules/history/lib/rehearsals";
 import { rehearsalsQueryOptions } from "@/modules/history/queries/rehearsals";
-
-// Avatar backgrounds: the palette's cobalt plus the chart hues, so every
-// student gets a face that still belongs to the app.
-const AVATAR_COLORS = ["#3D6BE0", "#2BA3B5", "#D9A43A", "#E06B4A", "#9A5BC9"];
 
 function groupFor(updatedAt: Date) {
   const days = daysAgo(updatedAt);
@@ -279,21 +274,7 @@ export function HistorySidebar({ className }: { className?: string }) {
       </AlertDialog>
 
       <SidebarFooter>
-        <Facehash
-          aria-hidden="true"
-          className="shrink-0 rounded-full"
-          colors={AVATAR_COLORS}
-          intensity3d="subtle"
-          name={student.name}
-          size={32}
-        />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-sm font-medium">{student.name}</span>
-          <span className="truncate text-xs text-muted-foreground">
-            {student.studentId}
-          </span>
-        </div>
-        <LogoutDialog />
+        <AccountMenu />
       </SidebarFooter>
     </Sidebar>
   );

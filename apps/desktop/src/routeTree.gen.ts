@@ -16,6 +16,7 @@ import { Route as privateappRouteRouteImport } from './routes/(private)/(app)/ro
 import { Route as privateOnboardingRouteImport } from './routes/(private)/onboarding'
 import { Route as privateSessionRouteImport } from './routes/(private)/session'
 import { Route as privateappIndexRouteImport } from './routes/(private)/(app)/index'
+import { Route as privateappSettingsRouteImport } from './routes/(private)/(app)/settings'
 import { Route as privateappRehearsalsIdRouteImport } from './routes/(private)/(app)/rehearsals/$id'
 
 const authRouteRoute = authRouteRouteImport.update({
@@ -50,6 +51,11 @@ const privateappIndexRoute = privateappIndexRouteImport.update({
   path: '/',
   getParentRoute: () => privateappRouteRoute,
 } as any)
+const privateappSettingsRoute = privateappSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => privateappRouteRoute,
+} as any)
 const privateappRehearsalsIdRoute = privateappRehearsalsIdRouteImport.update({
   id: '/rehearsals/$id',
   path: '/rehearsals/$id',
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof authLoginRoute
   '/onboarding': typeof privateOnboardingRoute
   '/session': typeof privateSessionRoute
+  '/settings': typeof privateappSettingsRoute
   '/': typeof privateappIndexRoute
   '/rehearsals/$id': typeof privateappRehearsalsIdRoute
 }
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/login': typeof authLoginRoute
   '/onboarding': typeof privateOnboardingRoute
   '/session': typeof privateSessionRoute
+  '/settings': typeof privateappSettingsRoute
   '/': typeof privateappIndexRoute
   '/rehearsals/$id': typeof privateappRehearsalsIdRoute
 }
@@ -78,14 +86,27 @@ export interface FileRoutesById {
   '/(auth)/login': typeof authLoginRoute
   '/(private)/onboarding': typeof privateOnboardingRoute
   '/(private)/session': typeof privateSessionRoute
+  '/(private)/(app)/settings': typeof privateappSettingsRoute
   '/(private)/(app)/': typeof privateappIndexRoute
   '/(private)/(app)/rehearsals/$id': typeof privateappRehearsalsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/login' | '/onboarding' | '/session' | '/' | '/rehearsals/$id'
+  fullPaths:
+    | '/login'
+    | '/onboarding'
+    | '/session'
+    | '/settings'
+    | '/'
+    | '/rehearsals/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/onboarding' | '/session' | '/' | '/rehearsals/$id'
+  to:
+    | '/login'
+    | '/onboarding'
+    | '/session'
+    | '/settings'
+    | '/'
+    | '/rehearsals/$id'
   id:
     | '__root__'
     | '/(auth)'
@@ -94,6 +115,7 @@ export interface FileRouteTypes {
     | '/(auth)/login'
     | '/(private)/onboarding'
     | '/(private)/session'
+    | '/(private)/(app)/settings'
     | '/(private)/(app)/'
     | '/(private)/(app)/rehearsals/$id'
   fileRoutesById: FileRoutesById
@@ -154,6 +176,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof privateappIndexRouteImport
       parentRoute: typeof privateappRouteRoute
     }
+    '/(private)/(app)/settings': {
+      id: '/(private)/(app)/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof privateappSettingsRouteImport
+      parentRoute: typeof privateappRouteRoute
+    }
     '/(private)/(app)/rehearsals/$id': {
       id: '/(private)/(app)/rehearsals/$id'
       path: '/rehearsals/$id'
@@ -177,11 +206,13 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
 )
 
 interface privateappRouteRouteChildren {
+  privateappSettingsRoute: typeof privateappSettingsRoute
   privateappIndexRoute: typeof privateappIndexRoute
   privateappRehearsalsIdRoute: typeof privateappRehearsalsIdRoute
 }
 
 const privateappRouteRouteChildren: privateappRouteRouteChildren = {
+  privateappSettingsRoute: privateappSettingsRoute,
   privateappIndexRoute: privateappIndexRoute,
   privateappRehearsalsIdRoute: privateappRehearsalsIdRoute,
 }

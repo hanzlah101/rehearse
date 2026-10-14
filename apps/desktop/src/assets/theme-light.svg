@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 150" fill="none">
+  <style>
+    .light { --frame: #f4f5f7; --card: #ffffff; --line: #dfe2e7; --ink: #1d2129; --soft: #a3a8b2; --primary: #3a66d9; --tint: #e3eafb; --selected: #ffffff; --dot: #d3d6dc; }
+    .frame { fill: var(--frame); }
+    .card { fill: var(--card); stroke: var(--line); }
+    .selected { fill: var(--selected); stroke: var(--line); }
+    .ink { fill: var(--ink); }
+    .soft { fill: var(--soft); }
+    .primary { fill: var(--primary); }
+    .pill { fill: var(--tint); stroke: var(--primary); }
+    .bar { fill: var(--line); }
+    .dot { fill: var(--dot); }
+  </style>
+  <g class="light">
+    <rect class="frame" width="240" height="150" rx="10" />
+    <circle class="dot" cx="12" cy="11" r="2.2" />
+    <circle class="dot" cx="19.5" cy="11" r="2.2" />
+    <circle class="dot" cx="27" cy="11" r="2.2" />
+    <rect class="primary" x="10" y="20" width="9" height="9" rx="2.5" />
+    <rect class="ink" x="23" y="23" width="26" height="3.5" rx="1.75" opacity=".75" />
+    <rect class="pill" x="10.5" y="35.5" width="51" height="10" rx="5" />
+    <rect class="primary" x="26" y="39.5" width="20" height="2.5" rx="1.25" />
+    <rect class="selected" x="9.5" y="53.5" width="53" height="15" rx="4" />
+    <rect class="ink" x="14" y="57" width="38" height="3" rx="1.5" opacity=".8" />
+    <rect class="soft" x="14" y="63" width="24" height="2.2" rx="1.1" />
+    <rect class="ink" x="14" y="75" width="42" height="3" rx="1.5" opacity=".55" />
+    <rect class="soft" x="14" y="81" width="20" height="2.2" rx="1.1" />
+    <rect class="ink" x="14" y="93" width="34" height="3" rx="1.5" opacity=".55" />
+    <rect class="soft" x="14" y="99" width="26" height="2.2" rx="1.1" />
+    <circle cx="16" cy="137" r="5" fill="#d9a43a" />
+    <rect class="ink" x="25" y="134" width="28" height="2.6" rx="1.3" opacity=".7" />
+    <rect class="soft" x="25" y="139" width="18" height="2" rx="1" />
+    <rect class="card" x="70.5" y="8.5" width="161" height="133" rx="7" />
+    <rect class="primary" x="86" y="26" width="24" height="3" rx="1.5" />
+    <rect class="ink" x="86" y="35" width="112" height="8" rx="3" />
+    <rect class="ink" x="86" y="47" width="78" height="8" rx="3" />
+    <rect class="soft" x="86" y="62" width="100" height="3" rx="1.5" />
+    <rect class="primary" x="86" y="82" width="3" height="8" rx="1.5" />
+    <rect class="primary" x="92" y="78" width="3" height="16" rx="1.5" />
+    <rect class="primary" x="98" y="80" width="3" height="12" rx="1.5" />
+    <rect class="primary" x="104" y="76" width="3" height="20" rx="1.5" />
+    <rect class="primary" x="110" y="81" width="3" height="10" rx="1.5" />
+    <rect class="bar" x="116" y="79" width="3" height="14" rx="1.5" />
+    <rect class="bar" x="122" y="82" width="3" height="8" rx="1.5" />
+    <rect class="bar" x="128" y="77" width="3" height="18" rx="1.5" />
+    <rect class="bar" x="134" y="81" width="3" height="10" rx="1.5" />
+    <rect class="bar" x="140" y="79" width="3" height="14" rx="1.5" />
+    <rect class="bar" x="146" y="83" width="3" height="6" rx="1.5" />
+    <rect class="bar" x="152" y="78" width="3" height="16" rx="1.5" />
+    <rect class="bar" x="158" y="81" width="3" height="10" rx="1.5" />
+    <rect class="bar" x="164" y="80" width="3" height="12" rx="1.5" />
+    <rect class="bar" x="170" y="82" width="3" height="8" rx="1.5" />
+    <circle class="primary" cx="151" cy="118" r="10" />
+    <rect x="148.5" y="112" width="5" height="8" rx="2.5" fill="#ffffff" />
+    <rect x="150.25" y="121" width="1.5" height="3" rx=".75" fill="#ffffff" />
+  </g>
+</svg>
