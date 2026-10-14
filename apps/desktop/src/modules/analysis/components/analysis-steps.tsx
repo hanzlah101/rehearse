@@ -60,7 +60,11 @@ function activeStep(progress: AnalysisProgress): {
   index: number;
 } {
   if (progress.stage === "reviewing") {
-    const index = progress.serverStage === "content" ? 4 : 3;
+    // "done" arrives before the result is fetched, so it stays on the content step.
+    const index =
+      progress.serverStage === "content" || progress.serverStage === "done"
+        ? 4
+        : 3;
     // Going offline keeps the current step; it doesn't undo finished ones.
     if (progress.isOffline) {
       return {
