@@ -234,6 +234,20 @@ export const feedbackSubscriptionSchema = z
   })
   .meta({ id: "FeedbackSubscription" });
 
+// Speaking time sent for review in the last 24 hours, against the student's
+// limit. refreshesAt: when enough of it leaves the window to review again,
+// set only while the limit is used up.
+export const feedbackUsageSchema = z
+  .object({
+    limitSeconds: z.int().nonnegative(),
+    refreshesAt: z
+      .date()
+      .nullable()
+      .meta({ examples: ["2026-11-10T09:00:00.000Z"] }),
+    usedSeconds: z.int().nonnegative(),
+  })
+  .meta({ id: "FeedbackUsage" });
+
 export type SubmitFeedbackInput = z.infer<typeof submitFeedbackInputSchema>;
 export type KeyPoint = z.infer<typeof keyPointSchema>;
 export type LanguageFeedback = z.infer<typeof languageFeedbackSchema>;
@@ -244,4 +258,5 @@ export type FeedbackStage = (typeof FEEDBACK_STAGES)[number];
 export type FeedbackJobView = z.infer<typeof feedbackJobSchema>;
 export type FeedbackStatus = z.infer<typeof feedbackStatusSchema>;
 export type FeedbackSubscription = z.infer<typeof feedbackSubscriptionSchema>;
+export type FeedbackUsage = z.infer<typeof feedbackUsageSchema>;
 export type PauseKind = (typeof PAUSE_KINDS)[number];

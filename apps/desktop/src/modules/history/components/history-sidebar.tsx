@@ -1,12 +1,13 @@
 import {
   IconAlertCircleFilled,
+  IconMicrophoneFilled,
   IconPlus,
   IconTrash,
 } from "@tabler/icons-react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { cn } from "cn";
-import { useContext, useRef, useState } from "react";
+import { useContext, useState } from "react";
 import { OverlayTriggerStateContext, useFilter } from "react-aria-components";
 
 import logo from "@/assets/logo.svg";
@@ -20,7 +21,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Menu, MenuItem, MenuPopover } from "@/components/ui/menu";
+import {
+  ContextMenu,
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from "@/components/ui/context-menu";
 import { SearchField } from "@/components/ui/search-field";
 import {
   Sidebar,
@@ -34,6 +39,7 @@ import { daysAgo, formatNumber, formatPercent, formatWhen } from "@/lib/format";
 import { AccountMenu } from "@/modules/auth/components/account-menu";
 import { useSession } from "@/modules/auth/queries/session";
 import { useDeleteRehearsal } from "@/modules/history/actions/delete-rehearsal";
+import { UsageMeter } from "@/modules/history/components/usage-meter";
 import type { RehearsalSummary } from "@/modules/history/lib/rehearsals";
 import { rehearsalsQueryOptions } from "@/modules/history/queries/rehearsals";
 
@@ -154,9 +160,6 @@ export function HistorySidebar({ className }: { className?: string }) {
     search === ""
       ? rehearsals
       : rehearsals.filter((rehearsal) => contains(rehearsal.topic, search));
-  // Right-click (or the context-menu key) on a row opens its menu there.
-  const menuTrigger = useRef<Element | null>(null);
-  const [menuFor, setMenuFor] = useState<RehearsalSummary | null>(null);
   const [toDelete, setToDelete] = useState<RehearsalSummary | null>(null);
 
   return (
@@ -191,6 +194,39 @@ export function HistorySidebar({ className }: { className?: string }) {
 
       <SidebarList
         aria-label="Previous rehearsals"
+        // Right-click (or the context-menu key) on a row opens its menu at
+        // the pointer.
+        renderContextMenu={(item) => (
+          <ContextMenu aria-label={`${item.topic} options`}>
+            <ContextMenuItem
+              onAction={() => {
+                void navigate({
+                  search: {
+                    minutes: item.targetSeconds / 60,
+                    rehearsal: item.id,
+                    topic: item.topic,
+                    topicId: item.topicId ?? undefined,
+                  },
+                  to: "/session",
+                });
+                sheet?.close();
+              }}
+            >
+              <IconMicrophoneFilled />
+              Try again
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              onAction={() => {
+                setToDelete(item);
+              }}
+              variant="destructive"
+            >
+              <IconTrash />
+              Delete rehearsal
+            </ContextMenuItem>
+          </ContextMenu>
+        )}
         emptyState={
           search === ""
             ? "No rehearsals yet."
@@ -200,40 +236,10 @@ export function HistorySidebar({ className }: { className?: string }) {
           void navigate({ params: { id: item.id }, to: "/rehearsals/$id" });
           sheet?.close();
         }}
-        onItemContextMenu={(item, target) => {
-          menuTrigger.current = target;
-          setMenuFor(item);
-        }}
         renderItem={(item) => <RehearsalRow item={item} />}
         rows={toRows(matches)}
         selectedId={rehearsalId ?? null}
       />
-
-      <MenuPopover
-        isOpen={menuFor !== null}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            setMenuFor(null);
-          }
-        }}
-        placement="bottom end"
-        triggerRef={menuTrigger}
-      >
-        <Menu
-          aria-label={
-            menuFor === null ? "Rehearsal" : `${menuFor.topic} options`
-          }
-          onAction={() => {
-            setToDelete(menuFor);
-            setMenuFor(null);
-          }}
-        >
-          <MenuItem id="delete" variant="destructive">
-            <IconTrash />
-            Delete rehearsal
-          </MenuItem>
-        </Menu>
-      </MenuPopover>
 
       <AlertDialog
         isKeyboardDismissDisabled={deletion.isPending}
@@ -272,6 +278,8 @@ export function HistorySidebar({ className }: { className?: string }) {
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialog>
+
+      <UsageMeter />
 
       <SidebarFooter>
         <AccountMenu />

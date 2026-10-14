@@ -1,11 +1,15 @@
-import { and, count, eq, gt, sql } from "drizzle-orm";
+import { and, asc, eq, gt, sql } from "drizzle-orm";
 import { getClientSubscriptionToken } from "inngest/react";
 
 import { db } from "@/server/db/client";
-import { feedbackJobs, feedbackRequests, keyPoints } from "@/server/db/schema";
+import {
+  feedbackJobs,
+  feedbackRequests,
+  keyPoints,
+  students,
+} from "@/server/db/schema";
 import type { FeedbackJob } from "@/server/db/schema";
 import { inngest } from "@/server/inngest";
-import { FEEDBACK_DAILY_LIMIT } from "@/server/modules/feedback/feedback.constants";
 import {
   FeedbackRateLimited,
   FeedbackUnavailable,
@@ -20,11 +24,67 @@ import type {
   FeedbackResult,
   FeedbackStage,
   FeedbackSubscription,
+  FeedbackUsage,
   KeyPoint,
   SubmitFeedbackInput,
 } from "@/server/modules/feedback/feedback.schemas";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Speaking time sent for review in the last 24 hours. Takes the transaction
+// when called under the submit lock.
+async function usageOf(
+  executor: Pick<typeof db, "select">,
+  studentId: string
+): Promise<FeedbackUsage> {
+  const [student] = await executor
+    .select({ limitSeconds: students.dailyLimitSeconds })
+    .from(students)
+    .where(eq(students.id, studentId))
+    .limit(1);
+
+  if (student === undefined) {
+    throw new Error(`Student ${studentId} doesn't exist.`);
+  }
+
+  const requests = await executor
+    .select({
+      createdAt: feedbackRequests.createdAt,
+      spokenSeconds: feedbackRequests.spokenSeconds,
+    })
+    .from(feedbackRequests)
+    .where(
+      and(
+        eq(feedbackRequests.studentId, studentId),
+        gt(feedbackRequests.createdAt, new Date(Date.now() - DAY_MS))
+      )
+    )
+    .orderBy(asc(feedbackRequests.createdAt));
+
+  const { limitSeconds } = student;
+  const usedSeconds = requests.reduce(
+    (total, request) => total + request.spokenSeconds,
+    0
+  );
+
+  // Requests leave the window oldest first; once the limit is used up, the
+  // student can review again when enough of them have left.
+  let left = usedSeconds;
+  let refreshesAt: Date | null = null;
+  for (const request of requests) {
+    if (left < limitSeconds) {
+      break;
+    }
+    left -= request.spokenSeconds;
+    refreshesAt = new Date(request.createdAt.getTime() + DAY_MS);
+  }
+
+  return { limitSeconds, refreshesAt, usedSeconds };
+}
+
+export async function getFeedbackUsage(studentId: string) {
+  return await usageOf(db, studentId);
+}
 
 function toView({
   attemptId,
@@ -114,24 +174,20 @@ export async function submitFeedback(
     return await startRun(restarted);
   }
 
-  // Count and insert under a per-student lock, so concurrent submits can't
-  // all see room under the limit.
+  // Check and insert under a per-student lock, so concurrent submits can't
+  // all see time left under the limit. A talk is accepted while any time is
+  // left and counts in full, so the last one may run over.
   const created = await db.transaction(async (tx) => {
     await tx.execute(
       sql`select pg_advisory_xact_lock(hashtext(${`feedback:${studentId}`}))`
     );
-    const [recent] = await tx
-      .select({ value: count() })
-      .from(feedbackRequests)
-      .where(
-        and(
-          eq(feedbackRequests.studentId, studentId),
-          gt(feedbackRequests.createdAt, new Date(Date.now() - DAY_MS))
-        )
-      );
+    const { limitSeconds, usedSeconds } = await usageOf(tx, studentId);
 
-    if ((recent?.value ?? 0) >= FEEDBACK_DAILY_LIMIT) {
-      throw new FeedbackRateLimited();
+    if (usedSeconds >= limitSeconds) {
+      const minutes = Math.round(limitSeconds / 60);
+      throw new FeedbackRateLimited({
+        message: `You've used your ${minutes} ${minutes === 1 ? "minute" : "minutes"} of reviewed speaking for today. Try again later.`,
+      });
     }
 
     const [job] = await tx
@@ -149,7 +205,10 @@ export async function submitFeedback(
       .returning();
 
     if (job !== undefined) {
-      await tx.insert(feedbackRequests).values({ studentId });
+      await tx.insert(feedbackRequests).values({
+        spokenSeconds: Math.ceil(input.spokenSeconds),
+        studentId,
+      });
     }
     return job;
   });

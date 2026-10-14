@@ -1,8 +1,7 @@
 import { defineError } from "@/server/errors";
-import { FEEDBACK_DAILY_LIMIT } from "@/server/modules/feedback/feedback.constants";
 
 export const FeedbackRateLimited = defineError("FEEDBACK_RATE_LIMITED", {
-  message: `You've reached today's limit of ${FEEDBACK_DAILY_LIMIT} reviews. Try again tomorrow.`,
+  message: "You've used today's speaking time for reviews. Try again later.",
   status: 429,
 });
 
