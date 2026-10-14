@@ -1,4 +1,3 @@
-import "dotenv/config";
 import process from "node:process";
 
 import { db } from "@/server/db/client";
