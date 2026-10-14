@@ -9,8 +9,10 @@ export const FEEDBACK_MODEL = "openai/gpt-oss-120b";
 export const FEEDBACK_FALLBACK_MODEL = "openai/gpt-oss-20b";
 export const FEEDBACK_FALLBACK_AFTER_ATTEMPTS = 2;
 
-// Each LLM call gives up after this long; the step is then retried.
-export const FEEDBACK_CALL_TIMEOUT_MS = 120_000;
+// Each LLM call gives up after this long; the step is then retried. Under
+// Netlify's 60 s function limit (each Inngest step is one request), so a slow
+// call fails cleanly instead of being killed mid-step.
+export const FEEDBACK_CALL_TIMEOUT_MS = 50_000;
 
 // Talks are 1–10 minutes; leave headroom for overtime.
 export const FEEDBACK_MAX_TARGET_SECONDS = 900;
