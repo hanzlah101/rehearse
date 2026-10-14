@@ -36,7 +36,7 @@ export function ThemePicker() {
       {THEMES.map(({ image, label, value }) => (
         <RadioField key={value} value={value}>
           <RadioButton className="group/theme flex cursor-default flex-col gap-2.5 outline-hidden">
-            <span className="overflow-hidden rounded-xl bg-muted ring-1 ring-border transition-shadow duration-150 ease-out group-data-focus-visible/theme:outline-2 group-data-focus-visible/theme:outline-offset-2 group-data-focus-visible/theme:outline-ring group-data-focus-visible/theme:outline-solid group-data-hovered/theme:ring-input group-data-selected/theme:ring-2 group-data-selected/theme:ring-primary motion-reduce:transition-none">
+            <span className="overflow-hidden rounded-xl bg-muted ring-1 ring-border transition-shadow duration-150 ease-out group-data-focus-visible/theme:outline-2 group-data-focus-visible/theme:outline-offset-2 group-data-focus-visible/theme:outline-ring group-data-focus-visible/theme:outline-solid group-data-hovered/theme:group-not-data-selected/theme:ring-input group-data-selected/theme:ring-2 group-data-selected/theme:ring-primary motion-reduce:transition-none">
               <img alt="" className="block aspect-8/5 w-full" src={image} />
             </span>
             <span className="flex items-center gap-2 text-sm font-medium">
