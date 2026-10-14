@@ -59,17 +59,22 @@ function activeStep(progress: AnalysisProgress): {
   doing: string;
   index: number;
 } {
-  if (progress.isOffline) {
-    return {
-      doing: "Waiting for a connection. It carries on by itself.",
-      index: progress.stage === "reviewing" ? 3 : 0,
-    };
-  }
-
   if (progress.stage === "reviewing") {
-    return progress.serverStage === "content"
-      ? { doing: "Checking what you explained against the topic", index: 4 }
-      : { doing: "Reading every sentence for mistakes", index: 3 };
+    // "done" arrives before the result is fetched, so it stays on the content step.
+    const index =
+      progress.serverStage === "content" || progress.serverStage === "done"
+        ? 4
+        : 3;
+    // Going offline keeps the current step; it doesn't undo finished ones.
+    if (progress.isOffline) {
+      return {
+        doing: "Waiting for a connection. It carries on by itself.",
+        index,
+      };
+    }
+    return index === 4
+      ? { doing: "Checking what you explained against the topic", index }
+      : { doing: "Reading every sentence for mistakes", index };
   }
 
   const { doing, index } = LOCAL_STEPS[progress.stage];

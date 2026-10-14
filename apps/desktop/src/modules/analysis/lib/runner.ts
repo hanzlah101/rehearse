@@ -1,6 +1,9 @@
 import { isDefinedError, safe } from "@orpc/client";
 import type { FeedbackStage } from "@server/modules/feedback/feedback.schemas";
-import { feedbackStatusSchema } from "@server/modules/feedback/feedback.schemas";
+import {
+  FEEDBACK_STAGES,
+  feedbackStatusSchema,
+} from "@server/modules/feedback/feedback.schemas";
 import type { QueryClient } from "@tanstack/react-query";
 import { subscribe } from "inngest/realtime";
 
@@ -146,6 +149,17 @@ function update(id: string, patch: Partial<AnalysisProgress>) {
     findings: { ...current.findings, ...patch.findings },
   });
   emit();
+}
+
+// Polls and realtime messages race, so a late one can carry a stage the run
+// has already left: the checkpoints only move forward.
+function laterServerStage(id: string, stage: FeedbackStage) {
+  const current = progress.get(id)?.serverStage ?? null;
+
+  return current !== null &&
+    FEEDBACK_STAGES.indexOf(current) > FEEDBACK_STAGES.indexOf(stage)
+    ? current
+    : stage;
 }
 
 function forget(id: string) {
@@ -426,7 +440,11 @@ async function checkReview(id: string, jobId: string): Promise<Check> {
     return "pending";
   }
 
-  update(id, { isOffline: false, serverStage: data.stage, stage: "reviewing" });
+  update(id, {
+    isOffline: false,
+    serverStage: laterServerStage(id, data.stage),
+    stage: "reviewing",
+  });
   if (data.status === "completed" && data.result !== null) {
     await finishReview(id, data.result);
     return "done";
@@ -455,7 +473,7 @@ async function openRealtime(id: string, jobId: string, onChange: () => void) {
       onMessage: (message: { data: unknown }) => {
         const status = feedbackStatusSchema.safeParse(message.data);
         if (status.success) {
-          update(id, { serverStage: status.data.stage });
+          update(id, { serverStage: laterServerStage(id, status.data.stage) });
           if (
             status.data.status !== "queued" &&
             status.data.status !== "running"
@@ -472,7 +490,6 @@ async function openRealtime(id: string, jobId: string, onChange: () => void) {
 }
 
 async function waitForReview(id: string, jobId: string, signal: AbortSignal) {
-  update(id, { fraction: null, stage: "reviewing" });
   const waker: Waker = { wake: null };
   const realtime = await openRealtime(id, jobId, () => {
     waker.wake?.();
@@ -500,6 +517,10 @@ async function review(
   metrics: Metrics,
   signal: AbortSignal
 ) {
+  // The local steps are done; sending the talk is part of the review, so the
+  // pauses step doesn't keep spinning (or fall back to the first step when
+  // offline) while it's submitted.
+  update(target.id, { fraction: null, stage: "reviewing" });
   try {
     let jobId = target.feedbackJobId;
     for (;;) {
