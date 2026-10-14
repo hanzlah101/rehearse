@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import { CREDENTIAL_MAX_LENGTH } from "@/server/modules/auth/auth.constants";
+import {
+  CREDENTIAL_MAX_LENGTH,
+  NAME_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+} from "@/server/modules/auth/auth.constants";
 
 export const loginInputSchema = z
   .object({
@@ -33,6 +37,44 @@ export const sessionSchema = z
   })
   .meta({ id: "Session" });
 
+export const updateProfileInputSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(1, { error: "Enter your name." })
+      .max(NAME_MAX_LENGTH, {
+        error: `Keep your name under ${String(NAME_MAX_LENGTH)} characters.`,
+      })
+      .meta({ examples: ["Ayesha Khan"] }),
+  })
+  .meta({ id: "UpdateProfileInput" });
+
+// The new password is checked against the current one here too, so the
+// desktop form shows the same rule before sending anything.
+export const changePasswordInputSchema = z
+  .object({
+    currentPassword: z
+      .string()
+      .min(1, { error: "Enter your current password." })
+      .max(CREDENTIAL_MAX_LENGTH),
+    newPassword: z
+      .string()
+      .min(PASSWORD_MIN_LENGTH, {
+        error: `Use at least ${String(PASSWORD_MIN_LENGTH)} characters.`,
+      })
+      .max(CREDENTIAL_MAX_LENGTH, {
+        error: `Keep it under ${String(CREDENTIAL_MAX_LENGTH)} characters.`,
+      }),
+  })
+  .refine((input) => input.newPassword !== input.currentPassword, {
+    error: "Choose a password different from your current one.",
+    path: ["newPassword"],
+  })
+  .meta({ id: "ChangePasswordInput" });
+
 export type LoginInput = z.infer<typeof loginInputSchema>;
+export type UpdateProfileInput = z.infer<typeof updateProfileInputSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordInputSchema>;
 export type Student = z.infer<typeof studentSchema>;
 export type Session = z.infer<typeof sessionSchema>;

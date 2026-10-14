@@ -3,16 +3,25 @@ import { deleteCookie, getCookie, setCookie } from "@orpc/server/helpers";
 
 import { COOKIE_OPTIONS } from "@/server/constants";
 import { inputValidation } from "@/server/core/input-validation";
+import { Unauthorized } from "@/server/errors";
 import { SESSION_COOKIE_NAME } from "@/server/modules/auth/auth.constants";
-import { AuthInvalidCredentials } from "@/server/modules/auth/auth.errors";
 import {
+  AuthIncorrectPassword,
+  AuthInvalidCredentials,
+} from "@/server/modules/auth/auth.errors";
+import {
+  changePasswordInputSchema,
   loginInputSchema,
   sessionSchema,
+  studentSchema,
+  updateProfileInputSchema,
 } from "@/server/modules/auth/auth.schemas";
 import {
   authenticate,
+  changePassword as changeStudentPassword,
   createSession,
   revokeSession,
+  updateProfile as updateStudentProfile,
 } from "@/server/modules/auth/auth.service";
 import { protectedOS, publicOS } from "@/server/orpc";
 
@@ -90,4 +99,66 @@ const logout = publicOS
     });
   });
 
-export const authRouter = { login, logout, session };
+const updateProfile = protectedOS
+  .meta(
+    openapi({
+      description:
+        "Renames the logged-in student. The student ID can't change.",
+      method: "PATCH",
+      path: "/auth/profile",
+      summary: "Update profile",
+      tags: TAGS,
+    })
+  )
+  .use(inputValidation)
+  .input(updateProfileInputSchema)
+  .output(studentSchema)
+  .errors({ [Unauthorized.code]: Unauthorized })
+  .handler(async ({ context, input }) => {
+    const student = await updateStudentProfile(
+      context.session.student.id,
+      input
+    );
+
+    // Deleted between the session check and the update.
+    if (student === null) {
+      throw new Unauthorized();
+    }
+
+    return student;
+  });
+
+const changePassword = protectedOS
+  .meta(
+    openapi({
+      description:
+        "Checks the current password, sets the new one and signs out every other session.",
+      method: "POST",
+      path: "/auth/password",
+      successStatus: 204,
+      summary: "Change password",
+      tags: TAGS,
+    })
+  )
+  .use(inputValidation)
+  .input(changePasswordInputSchema)
+  .errors({ [AuthIncorrectPassword.code]: AuthIncorrectPassword })
+  .handler(async ({ context, input }) => {
+    const isChanged = await changeStudentPassword(
+      context.session.student.id,
+      input,
+      context.sessionToken
+    );
+
+    if (!isChanged) {
+      throw new AuthIncorrectPassword();
+    }
+  });
+
+export const authRouter = {
+  changePassword,
+  login,
+  logout,
+  session,
+  updateProfile,
+};

@@ -13,9 +13,11 @@ export const requireSession = os
     const token = getCookie(context.headers, SESSION_COOKIE_NAME);
     const session = token === undefined ? null : await findActiveSession(token);
 
-    if (session === null) {
+    if (token === undefined || session === null) {
       throw new Unauthorized();
     }
 
-    return await next({ context: { session } });
+    // The token tells this session apart from the student's others (a
+    // password change signs out everywhere else).
+    return await next({ context: { session, sessionToken: token } });
   });
