@@ -2,7 +2,11 @@ import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
 export const env = createEnv({
-  client: {},
+  client: {
+    // The site's public origin, for absolute links such as the OG image.
+    // Netlify builds take it from URL (vite.config.ts).
+    VITE_SITE_URL: z.url().default("http://localhost:3000"),
+  },
   clientPrefix: "VITE_",
   emptyStringAsUndefined: true,
   isServer: typeof window === "undefined",
