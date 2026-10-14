@@ -1,13 +1,28 @@
-* {
-  box-sizing: border-box;
-}
+@import "tailwindcss";
+@import "@fontsource-variable/bricolage-grotesque/wdth.css";
+@import "@fontsource-variable/figtree";
+/* The desktop app's theme, so the site and the app share one palette. */
+@import "../../desktop/src/theme.css";
 
-body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
-}
+/* Toggled from the OS colour scheme by a script in the root route's head. */
+@custom-variant dark (&:is(.dark *));
 
-main {
-  width: min(42rem, calc(100% - 2rem));
-  margin: 4rem auto;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply scroll-smooth font-sans motion-reduce:scroll-auto;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  ::selection {
+    @apply bg-primary/25;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-heading tracking-tight;
+  }
 }
