@@ -1,15 +1,21 @@
-import { useQuery } from "@tanstack/react-query";
+import { onlineManager, useQuery } from "@tanstack/react-query";
+import { useSyncExternalStore } from "react";
 
 import { Meter } from "@/components/ui/meter";
 import { formatNumber, formatWhen } from "@/lib/format";
 import { usageQueryOptions } from "@/modules/history/queries/usage";
 
 // Speaking time sent for review today (the server's rolling 24 hours) against
-// the student's daily limit. Hidden until it loads, and while offline.
+// the student's daily limit. Hidden until it loads, and while offline: the
+// query keeps its last data offline, which would otherwise show stale usage.
 export function UsageMeter() {
   const { data } = useQuery(usageQueryOptions);
+  const isOnline = useSyncExternalStore(
+    (listener) => onlineManager.subscribe(listener),
+    () => onlineManager.isOnline()
+  );
 
-  if (data === undefined) {
+  if (data === undefined || !isOnline) {
     return null;
   }
 

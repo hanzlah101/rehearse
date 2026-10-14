@@ -74,9 +74,9 @@ const dailyLimitMinutes = Number(
       initialValue: String(FEEDBACK_DEFAULT_DAILY_SECONDS / 60),
       message: "Minutes of speaking reviewed per day",
       validate: (value) =>
-        /^\d+$/u.test(value?.trim() ?? "")
+        /^[1-9]\d*$/u.test(value?.trim() ?? "")
           ? undefined
-          : "Enter a whole number of minutes.",
+          : "Enter a whole number of minutes (1 or more).",
     })
   ).trim()
 );
