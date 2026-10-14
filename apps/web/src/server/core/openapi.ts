@@ -43,6 +43,12 @@ export async function generateOpenAPISpec() {
     base: {
       components: {
         securitySchemes: {
+          bearerAuth: {
+            description:
+              "The `token` from POST /api/auth/login, as `Authorization: Bearer <token>` (desktop app).",
+            scheme: "bearer",
+            type: "http",
+          },
           cookieAuth: {
             description: "Session cookie set by POST /api/auth/login.",
             in: "cookie",

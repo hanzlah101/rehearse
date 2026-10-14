@@ -73,8 +73,19 @@ export const changePasswordInputSchema = z
   })
   .meta({ id: "ChangePasswordInput" });
 
+// Login also returns the raw token, for clients that send it as a bearer
+// token instead of relying on the cookie (the desktop app).
+export const loginOutputSchema = sessionSchema
+  .extend({
+    token: z
+      .string()
+      .meta({ description: "Session token for Authorization: Bearer." }),
+  })
+  .meta({ id: "LoginResult" });
+
 export type LoginInput = z.infer<typeof loginInputSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileInputSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordInputSchema>;
 export type Student = z.infer<typeof studentSchema>;
 export type Session = z.infer<typeof sessionSchema>;
+export type LoginResult = z.infer<typeof loginOutputSchema>;

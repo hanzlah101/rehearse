@@ -20,11 +20,17 @@ export const publicOS = os
   })
   .use(declaredErrorsOnly);
 
+// Either the session cookie (browsers) or a bearer token (the desktop app).
+const SECURITY: Record<string, string[]>[] = [
+  { cookieAuth: [] },
+  { bearerAuth: [] },
+];
+
 // Forbidden: GetMethodCsrfProtectionHandlerPlugin can block GET procedures.
 export const protectedOS = publicOS
   .meta(
     openapi({
-      spec: (operation) => ({ ...operation, security: [{ cookieAuth: [] }] }),
+      spec: (operation) => ({ ...operation, security: SECURITY }),
     })
   )
   .errors({ [Forbidden.code]: Forbidden })
