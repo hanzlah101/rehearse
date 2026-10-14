@@ -1,4 +1,3 @@
-import "dotenv/config";
 import process from "node:process";
 
 import { cancel, intro, outro, password, spinner, text } from "@clack/prompts";
