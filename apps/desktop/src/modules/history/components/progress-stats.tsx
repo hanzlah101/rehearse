@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { cn } from "cn";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatDelta, formatNumber, formatPercent } from "@/lib/format";
 import { useSession } from "@/modules/auth/queries/session";
 import { progressQueryOptions } from "@/modules/history/queries/rehearsals";
@@ -70,5 +71,18 @@ export function ProgressStats() {
         </dd>
       </div>
     </dl>
+  );
+}
+
+export function ProgressStatsSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-8 border-t pt-8">
+      {["Streak", "Last score"].map((label) => (
+        <div className="flex flex-col gap-3" key={label}>
+          <p className="text-sm text-muted-foreground">{label}</p>
+          <Skeleton className="h-9 w-28" />
+        </div>
+      ))}
+    </div>
   );
 }
