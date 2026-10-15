@@ -135,4 +135,4 @@ feature branch → PR (CI + Netlify deploy preview) → merge to main
 - The local database migrates itself on launch, so updates never lose rehearsals.
 - The speech model (~1.6 GB) downloads on first use and isn't bundled, so installers and updates stay small.
 - Recordings and data live in the app data folder, which updates don't touch.
-- The update check runs once per launch in release builds only (`modules/common/components/update-checker.tsx`) and never restarts the app by itself.
+- The update check runs once per launch in release builds only (`modules/common/components/update-checker.tsx`) and never restarts the app by itself. A downloaded update is announced once with a toast and stays in the sidebar as an "Update ready" card with Restart; it installs only then (on Windows the installer closes the app).
