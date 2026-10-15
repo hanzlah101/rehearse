@@ -33,7 +33,13 @@ export function useLogout() {
           .exhaustive(() => toast.error(errorMessage));
       },
       onSuccess: async () => {
-        await clearToken();
+        // The server has revoked the session, so sign out here even if the
+        // stored token can't be deleted; it no longer works anyway.
+        await clearToken().catch(() => {
+          toast.error(
+            "Logged out, but couldn't remove your saved sign-in from this computer."
+          );
+        });
         // Drop everything cached for the previous student.
         queryClient.clear();
         queryClient.setQueryData(sessionQueryOptions.queryKey, null);

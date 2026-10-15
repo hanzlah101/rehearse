@@ -20,11 +20,15 @@ export async function getToken() {
   return await token;
 }
 
+// Cached only once stored, so a failed login never leaves requests sending a
+// token the next launch wouldn't have.
 export async function setToken(value: string) {
-  token = Promise.resolve(value);
   await invoke("auth_token_set", { token: value });
+  token = Promise.resolve(value);
 }
 
+// Forgotten in memory first: the server has already revoked it, so requests
+// stop sending it even if deleting it from the store fails.
 export async function clearToken() {
   token = Promise.resolve(null);
   await invoke("auth_token_clear");
