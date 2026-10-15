@@ -25,6 +25,7 @@ const buttonVariants = cva(
         download:
           "h-15 gap-3 rounded-xl pr-6 pl-4.5 text-base [&_svg:not([class*='size-'])]:size-6",
         "icon-sm": "size-8 rounded-[min(var(--radius-md),12px)]",
+        sm: "h-8 gap-1 rounded-[min(var(--radius-md),12px)] px-3 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5 [&_svg:not([class*='size-'])]:size-3.5",
       },
       variant: {
         default:

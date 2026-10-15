@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as ApiInngestRouteImport } from './routes/api/inngest'
+import { Route as DownloadIdRouteImport } from './routes/download.$id'
 import { Route as ApiRpcSplatRouteImport } from './routes/api/rpc.$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +30,11 @@ const ApiInngestRoute = ApiInngestRouteImport.update({
   path: '/api/inngest',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DownloadIdRoute = DownloadIdRouteImport.update({
+  id: '/download/$id',
+  path: '/download/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiRpcSplatRoute = ApiRpcSplatRouteImport.update({
   id: '/api/rpc/$',
   path: '/api/rpc/$',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/$': typeof ApiSplatRoute
   '/api/inngest': typeof ApiInngestRoute
+  '/download/$id': typeof DownloadIdRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/$': typeof ApiSplatRoute
   '/api/inngest': typeof ApiInngestRoute
+  '/download/$id': typeof DownloadIdRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,28 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/api/$': typeof ApiSplatRoute
   '/api/inngest': typeof ApiInngestRoute
+  '/download/$id': typeof DownloadIdRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/$' | '/api/inngest' | '/api/rpc/$'
+  fullPaths: '/' | '/api/$' | '/api/inngest' | '/download/$id' | '/api/rpc/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/$' | '/api/inngest' | '/api/rpc/$'
-  id: '__root__' | '/' | '/api/$' | '/api/inngest' | '/api/rpc/$'
+  to: '/' | '/api/$' | '/api/inngest' | '/download/$id' | '/api/rpc/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/api/$'
+    | '/api/inngest'
+    | '/download/$id'
+    | '/api/rpc/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiSplatRoute: typeof ApiSplatRoute
   ApiInngestRoute: typeof ApiInngestRoute
+  DownloadIdRoute: typeof DownloadIdRoute
   ApiRpcSplatRoute: typeof ApiRpcSplatRoute
 }
 
@@ -92,6 +108,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiInngestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/download/$id': {
+      id: '/download/$id'
+      path: '/download/$id'
+      fullPath: '/download/$id'
+      preLoaderRoute: typeof DownloadIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/rpc/$': {
       id: '/api/rpc/$'
       path: '/api/rpc/$'
@@ -106,6 +129,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiSplatRoute: ApiSplatRoute,
   ApiInngestRoute: ApiInngestRoute,
+  DownloadIdRoute: DownloadIdRoute,
   ApiRpcSplatRoute: ApiRpcSplatRoute,
 }
 export const routeTree = rootRouteImport

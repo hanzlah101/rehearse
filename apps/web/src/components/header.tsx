@@ -1,3 +1,4 @@
+import { IconDownload } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useMotionValueEvent, useScroll } from "motion/react";
 import { useState } from "react";
@@ -6,6 +7,24 @@ import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { BlurFade } from "@/components/ui/blur-fade";
+import { ButtonLink } from "@/components/ui/button";
+import { downloadUrl, useOs } from "@/lib/downloads";
+
+// The visitor's installer, downloaded directly; the download section until
+// the OS is known (and on phones, which can't run the app). Same size either
+// way, so nothing shifts when it's read.
+function HeaderDownload() {
+  const os = useOs();
+  const href =
+    os === "pending" || os === "unknown" ? "#download" : downloadUrl(os);
+
+  return (
+    <ButtonLink href={href} size="sm">
+      <IconDownload aria-hidden data-icon="inline-start" />
+      Download
+    </ButtonLink>
+  );
+}
 
 // Sticky over the page; drops in on load. Clear at the top, so the hero's glow
 // runs up behind it; once the page scrolls, only a blur keeps the content
@@ -32,13 +51,7 @@ export function Header() {
             <Badge>Beta</Badge>
           </div>
           <nav className="flex items-center gap-4">
-            <Link
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              hash="download"
-              to="/"
-            >
-              Download
-            </Link>
+            <HeaderDownload />
             <ThemeToggle />
           </nav>
         </div>

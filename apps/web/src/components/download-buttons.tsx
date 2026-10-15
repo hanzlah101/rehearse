@@ -5,64 +5,95 @@ import {
   IconDownload,
 } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
-import { Fragment, useSyncExternalStore } from "react";
+import { Fragment } from "react";
 
 import { BlurFade } from "@/components/ui/blur-fade";
 import { ButtonLink } from "@/components/ui/button";
+import { DOWNLOADS, downloadUrl, RELEASES_URL, useOs } from "@/lib/downloads";
+import type { DownloadId, Os } from "@/lib/downloads";
 
-// Every installer is attached to the latest GitHub Release
-// (.github/workflows/release-desktop.yml).
-const RELEASES_URL = "https://github.com/hanzlah101/rehearse/releases/latest";
-
-const PLATFORMS = [
-  {
-    Icon: IconBrandAppleFilled,
-    detail: "Apple silicon and Intel",
-    id: "macos",
-    name: "macOS",
-  },
-  {
-    Icon: IconBrandWindowsFilled,
-    detail: "Windows 10 and 11",
-    id: "windows",
-    name: "Windows",
-  },
-  {
+const MAIN = {
+  linux: {
+    detail: "AppImage",
     Icon: IconBrandUbuntu,
-    detail: "AppImage, .deb and .rpm",
     id: "linux",
     name: "Linux",
   },
-] as const;
+  macos: {
+    detail: "Apple silicon",
+    Icon: IconBrandAppleFilled,
+    id: "macos",
+    name: "macOS",
+  },
+  windows: {
+    detail: "Windows 10 and 11",
+    Icon: IconBrandWindowsFilled,
+    id: "windows",
+    name: "Windows",
+  },
+} as const;
 
-type Platform = (typeof PLATFORMS)[number]["id"];
+// The other installers, each a direct download. Browsers can't tell an Apple
+// silicon Mac from an Intel one, so the main macOS button is Apple silicon
+// and Intel Macs get their own link.
+const OTHERS = {
+  linux: {
+    formats: ["linux-deb", "linux-rpm"],
+    platforms: ["macos", "windows"],
+  },
+  macos: { formats: [], platforms: ["macos-intel", "windows", "linux"] },
+  windows: { formats: [], platforms: ["macos", "linux"] },
+} as const satisfies Record<
+  Os,
+  { formats: readonly DownloadId[]; platforms: readonly DownloadId[] }
+>;
 
-function detectPlatform(): Platform | "unknown" {
-  const agent = navigator.userAgent;
+const LINK =
+  "font-medium text-foreground underline decoration-foreground/30 underline-offset-3 transition-colors hover:decoration-foreground";
 
-  // Phones and tablets can't run the app, so they get the generic download.
-  if (/iPhone|iPad|Android/iu.test(agent)) {
-    return "unknown";
-  }
-  if (/Mac/iu.test(agent)) {
-    return "macos";
-  }
-  if (/Win/iu.test(agent)) {
-    return "windows";
-  }
-  if (/Linux|X11/iu.test(agent)) {
-    return "linux";
-  }
-  return "unknown";
+// Download links joined as a list: "a, b and c" or "a or b".
+function DownloadLinks({
+  ids,
+  type,
+}: {
+  ids: readonly DownloadId[];
+  type: "conjunction" | "disjunction";
+}) {
+  const parts = new Intl.ListFormat("en-GB", { type }).formatToParts(
+    ids.map((id) => DOWNLOADS[id].label)
+  );
+  let next = 0;
+
+  return parts.map((part) => {
+    if (part.type === "literal") {
+      return <Fragment key={`literal-${String(next)}`}>{part.value}</Fragment>;
+    }
+    const id = ids[next];
+    next += 1;
+    return id === undefined ? null : (
+      <a className={LINK} href={downloadUrl(id)} key={id}>
+        {part.value}
+      </a>
+    );
+  });
 }
 
-function unsubscribe() {
-  // Nothing to clean up: see subscribe.
-}
+function OtherDownloads({ os }: { os: Os }) {
+  const { formats, platforms } = OTHERS[os];
 
-// The platform never changes while the page is open.
-function subscribe() {
-  return unsubscribe;
+  return (
+    <p className="mt-3 min-h-5 text-sm text-pretty text-muted-foreground">
+      {formats.length > 0 ? (
+        <>
+          Also as <DownloadLinks ids={formats} type="disjunction" />, and
+          for{" "}
+        </>
+      ) : (
+        "Also for "
+      )}
+      <DownloadLinks ids={platforms} type="conjunction" />.
+    </p>
+  );
 }
 
 function DownloadSkeleton() {
@@ -93,60 +124,57 @@ function DownloadSkeleton() {
   );
 }
 
-function Download({ platform }: { platform: Platform | "unknown" }) {
-  const current = PLATFORMS.find(({ id }) => id === platform);
-  const others = PLATFORMS.filter(({ id }) => id !== platform);
-  const Icon = current?.Icon ?? IconDownload;
+function Download({ os }: { os: Os | "unknown" }) {
+  if (os === "unknown") {
+    // Phones and tablets: no installer fits, so this opens every download.
+    return (
+      <BlurFade className="col-start-1 row-start-1" duration={0.3}>
+        <ButtonLink className="min-w-72" href={RELEASES_URL} size="download">
+          <IconDownload aria-hidden />
+          <span className="flex flex-col items-start leading-tight">
+            Download Rehearse
+            <span className="text-xs font-medium text-primary-foreground/75">
+              For macOS, Windows and Linux
+            </span>
+          </span>
+        </ButtonLink>
+      </BlurFade>
+    );
+  }
+
+  const { detail, Icon, id, name } = MAIN[os];
 
   return (
     <BlurFade className="col-start-1 row-start-1" duration={0.3}>
-      <ButtonLink className="min-w-72" href={RELEASES_URL} size="download">
+      <ButtonLink className="min-w-72" href={downloadUrl(id)} size="download">
         <Icon aria-hidden />
         <span className="flex flex-col items-start leading-tight">
-          {current ? `Download for ${current.name}` : "Download Rehearse"}
+          Download for {name}
           <span className="text-xs font-medium text-primary-foreground/75">
-            {current?.detail ?? "For macOS, Windows and Linux"}
+            {detail}
           </span>
         </span>
       </ButtonLink>
-      {current ? (
-        <p className="mt-3 h-5 text-sm text-muted-foreground">
-          Also for{" "}
-          {others.map(({ id, name }, index) => (
-            <Fragment key={id}>
-              {index > 0 && " and "}
-              <a
-                className="font-medium text-foreground underline decoration-foreground/30 underline-offset-3 transition-colors hover:decoration-foreground"
-                href={RELEASES_URL}
-              >
-                {name}
-              </a>
-            </Fragment>
-          ))}
-        </p>
-      ) : null}
+      <OtherDownloads os={os} />
     </BlurFade>
   );
 }
 
-// The visitor's platform as one button, the other two as quiet links under it.
-// The platform is only known in the browser, so the server renders a skeleton
-// of the same size and the button crossfades in once it's been read.
+// The visitor's installer as one button, the others as quiet links under it,
+// all direct downloads. The OS is only known in the browser, so the server
+// renders a skeleton of the same size and the button crossfades in once it's
+// been read.
 export function DownloadButtons() {
-  const platform = useSyncExternalStore(
-    subscribe,
-    detectPlatform,
-    () => "pending" as const
-  );
+  const os = useOs();
 
   // Both layers share one grid cell, so the swap happens in place.
   return (
     <div className="grid justify-start">
       <AnimatePresence initial={false}>
-        {platform === "pending" ? (
+        {os === "pending" ? (
           <DownloadSkeleton key="pending" />
         ) : (
-          <Download key="ready" platform={platform} />
+          <Download key="ready" os={os} />
         )}
       </AnimatePresence>
     </div>
