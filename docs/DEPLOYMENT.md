@@ -106,7 +106,7 @@ Versions follow semver (`MAJOR.MINOR.PATCH`): patch = fixes, minor = features, m
    git push && git push --tags
    ```
 
-4. **Release desktop** runs (GitHub → Actions). It checks that the tag matches the version, the public key and secrets exist, then builds macOS (Apple Silicon + Intel), Windows and Linux in parallel and uploads everything to a **draft** release.
+4. **Release desktop** runs (GitHub → Actions). It checks that the tag matches the version, the public key and secrets exist, then builds macOS (Apple Silicon + Intel), Windows and Linux in parallel and uploads everything to a **draft** release. Once all four are done, a last job writes the updater's `latest.json` from their signatures (one file written once, so no platform can go missing).
 5. Download an installer from the draft and try it.
 6. Edit the release, write notes, **Publish**. Installed apps fetch `releases/latest/download/latest.json` on launch, download the update in the background and offer "Restart".
 
