@@ -124,9 +124,12 @@ jobs:
     permissions:
       contents: write
     steps:
-      # One entry per platform the app updates on: the bundle tauri-action
-      # would pick (the .app.tar.gz on macOS, the AppImage on Linux, the .msi
-      # on Windows) with the contents of its .sig file.
+      # One entry per platform: the bundle tauri-action would pick (the
+      # .app.tar.gz on macOS, the AppImage on Linux, the .msi on Windows) with
+      # the contents of its .sig file. The updater looks for
+      # {os}-{arch}-{bundle} before {os}-{arch}, so .deb, .rpm and NSIS
+      # installs get their own entries instead of falling back to a bundle
+      # type they can't install.
       - name: Build latest.json from the release's signatures
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -160,6 +163,9 @@ jobs:
             entry darwin-x86_64 '*x64.app.tar.gz.sig' '*x86_64.app.tar.gz.sig'
             entry linux-x86_64 '*.AppImage.sig'
             entry windows-x86_64 '*.msi.sig'
+            entry linux-x86_64-deb '*.deb.sig'
+            entry linux-x86_64-rpm '*.rpm.sig'
+            entry windows-x86_64-nsis '*-setup.exe.sig'
           } > entries.json
           jq -s 'add' entries.json > platforms.json
 
