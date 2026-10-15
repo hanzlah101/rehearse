@@ -38,14 +38,18 @@ async function findInstaller(fileEnding: string) {
   return asset?.browser_download_url ?? null;
 }
 
-function redirect(location: string) {
+// A found installer is cached on Netlify's CDN for 5 minutes, so GitHub's API
+// (60 unauthenticated requests an hour) is asked at most a few times an hour.
+// The fallback isn't cached, so links start serving files as soon as a
+// release is published.
+function redirect(location: string, isInstaller: boolean) {
   return new Response(null, {
     headers: {
       "cache-control": "public, max-age=0, must-revalidate",
       location,
-      // Netlify's CDN keeps the answer for 5 minutes, so GitHub's API (60
-      // unauthenticated requests an hour) is asked at most a few times an hour.
-      "netlify-cdn-cache-control": "public, durable, s-maxage=300",
+      "netlify-cdn-cache-control": isInstaller
+        ? "public, durable, s-maxage=300"
+        : "no-store",
     },
     status: 302,
   });
@@ -58,7 +62,7 @@ async function handle({ params }: { params: { id: string } }) {
   const url = await findInstaller(DOWNLOADS[params.id].fileEnding).catch(
     () => null
   );
-  return redirect(url ?? RELEASES_URL);
+  return url === null ? redirect(RELEASES_URL, false) : redirect(url, true);
 }
 
 export const Route = createFileRoute("/download/$id")({
