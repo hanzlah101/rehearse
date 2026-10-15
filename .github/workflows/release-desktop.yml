@@ -97,6 +97,18 @@ jobs:
           # Signs the update bundles; installed apps reject anything else.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # whisper.cpp tunes itself to the build machine's CPU unless told
+          # otherwise (GGML_NATIVE), and GitHub's runners can have AVX-512 that
+          # many users' CPUs lack, which would crash transcription. x86 builds
+          # target the AVX2 baseline instead (Intel since 2013, every AMD
+          # Ryzen); whisper-rs-sys passes GGML_* through to CMake. Apple
+          # Silicon stays native (the runner is the M-series baseline), and
+          # the x86 flags don't apply to it.
+          GGML_NATIVE: ${{ matrix.target == 'aarch64-apple-darwin' && 'ON' || 'OFF' }}
+          GGML_AVX: "ON"
+          GGML_AVX2: "ON"
+          GGML_FMA: "ON"
+          GGML_F16C: "ON"
           # macOS signing + notarization: uncomment once the secrets exist
           # (empty values make the bundler try, and fail).
           # APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
