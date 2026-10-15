@@ -159,6 +159,15 @@ export const languageFeedbackSchema = z.object({
   vocabulary: z.array(quotedFixSchema),
 });
 
+// What the model returns for Call A: rewrites name their sentence by index
+// only (the server fills in the quote), which saves repeating the whole talk
+// in the output.
+export const languageOutputSchema = languageFeedbackSchema.extend({
+  rephrasings: z.array(
+    z.object({ better: z.string(), i: z.int(), why: z.string() })
+  ),
+});
+
 export const CONTENT_VERDICTS = [
   "accurate",
   "mostly_accurate",
@@ -251,6 +260,7 @@ export const feedbackUsageSchema = z
 export type SubmitFeedbackInput = z.infer<typeof submitFeedbackInputSchema>;
 export type KeyPoint = z.infer<typeof keyPointSchema>;
 export type LanguageFeedback = z.infer<typeof languageFeedbackSchema>;
+export type LanguageOutput = z.infer<typeof languageOutputSchema>;
 export type ContentCheck = z.infer<typeof contentCheckSchema>;
 export type FeedbackResult = z.infer<typeof feedbackResultSchema>;
 export type FeedbackJobStatus = (typeof FEEDBACK_JOB_STATUSES)[number];
