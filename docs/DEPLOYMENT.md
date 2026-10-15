@@ -66,6 +66,7 @@ Optional: Settings → Branches → protect `main` and require the **CI** checks
 1. Create an account and an app at inngest.com.
 2. Copy the **Event key** and **Signing key**.
 3. After the first Netlify deploy, sync the app: URL `https://<your-site>/api/inngest`. It discovers `review-attempt` and re-syncs on each deploy (or install the Netlify integration from Inngest).
+4. Both keys must be set on Netlify (below) before syncing. Without `INNGEST_SIGNING_KEY` the SDK runs in cloud mode with no key and `/api/inngest` answers `500 {"code":"internal_server_error"}`: the app can't sync, and reviews stay queued forever. A healthy endpoint answers an unsigned `curl` with `401 Unauthorized`. Reviews submitted before the app was synced don't start by themselves; retry them from the app.
 
 ### 5. Netlify
 

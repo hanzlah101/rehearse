@@ -2,8 +2,11 @@ import { Outlet, createFileRoute } from "@tanstack/react-router";
 
 import { AnalysisRunner } from "@/modules/analysis/components/analysis-runner";
 import { requireSession } from "@/modules/auth/lib/guards";
+import { useSessionCheck } from "@/modules/auth/queries/session";
 
 function PrivateLayout() {
+  useSessionCheck();
+
   return (
     <>
       <AnalysisRunner />

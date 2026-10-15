@@ -25,6 +25,16 @@ export function formatDelta(value: number, options?: Intl.NumberFormatOptions) {
   return formatNumber(value, { signDisplay: "exceptZero", ...options });
 }
 
+// File sizes in gigabytes: 1_656_192_398 → "1.66 GB".
+export function formatBytes(bytes: number) {
+  return formatNumber(bytes / 1e9, {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+    style: "unit",
+    unit: "gigabyte",
+  });
+}
+
 // Timers and recordings, whole seconds as m:ss: 291 → "4:51".
 export function formatDuration(totalSeconds: number) {
   const seconds = Math.max(0, Math.floor(totalSeconds));
