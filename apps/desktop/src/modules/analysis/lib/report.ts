@@ -301,8 +301,28 @@ function endsRealSentence(
   return /[.!?]["”')\]]*$/u.test(metrics.words[sentence.words[1]]?.text ?? "");
 }
 
-// The silent pause that replaces a filler, unless a pause the LLM picked
-// right after it already covers the spot.
+// Whether a filler sits at a natural break: the start of the sentence, next
+// to punctuation, or before a capitalised word (a new sentence the
+// recogniser didn't split off). "I" doesn't count: it's always capitalised.
+function isAtBreak(
+  text: string,
+  first: [number, number, number],
+  last: [number, number, number]
+) {
+  const before = text.slice(0, first[0]).trimEnd();
+  const after = text.slice(last[1]).trimStart();
+
+  return (
+    before === "" ||
+    /[,.;:!?\u2013\u2014-]$/u.test(before) ||
+    last[1] > last[2] ||
+    /^(?!I\b|I['\u2019])\p{Lu}/u.test(after)
+  );
+}
+
+// The silent pause that replaces a filler at a natural break, unless a pause
+// the LLM picked right after it already covers the spot. Mid-phrase fillers
+// ("I don't uh like the food") just go: a pause there would break the phrase.
 function fillerPause(
   text: string,
   offsets: SentenceLayout["offsets"],
@@ -314,7 +334,8 @@ function fillerPause(
   if (
     first === undefined ||
     last === undefined ||
-    pauseByWord.has((group.at(-1) ?? -1) + 1)
+    pauseByWord.has((group.at(-1) ?? -1) + 1) ||
+    !isAtBreak(text, first, last)
   ) {
     return "";
   }
@@ -327,7 +348,7 @@ function fillerPause(
 
 // The same talk with the fixes applied, as a script to read aloud: changed
 // wording (what was said and why), fillers and stutters removed (a silent
-// pause where a filler was), the pauses to take with their reasons, and the
+// pause where a filler was at a natural break), the pauses to take with their reasons, and the
 // words to stress.
 function betterSentence(
   metrics: Metrics,
@@ -382,7 +403,8 @@ function betterSentence(
 
   // Fillers ("um", "you know") and stutters ("the the") go, with their
   // trailing punctuation; between two commas the first comma goes too
-  // ("we, you know, tried" → "we tried"). A filler leaves a silent pause.
+  // ("we, you know, tried" → "we tried"). A filler at a break leaves a
+  // silent pause.
   const remove = (from: number, to: number, markup: string) => {
     const first = offsets.get(from);
     const last = offsets.get(to);

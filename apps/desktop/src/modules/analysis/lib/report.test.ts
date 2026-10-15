@@ -218,6 +218,40 @@ describe("pauses", () => {
   });
 });
 
+// The better version of a talk with no other findings.
+function betterOf(text: string) {
+  const metrics = computeMetrics(wordsOf(text), null, "Food");
+  return buildReport({
+    metrics,
+    result: {
+      ...result,
+      language: {
+        ...result.language,
+        emphasis: [],
+        grammar: [],
+        repetition: [],
+        vocabulary: [],
+      },
+    },
+    spokenSeconds: 40,
+    targetSeconds: 60,
+  }).feedback.better;
+}
+
+describe("filler pauses", () => {
+  test("a mid-phrase filler goes without a pause", () => {
+    expect(betterOf("Or I don't uh like the food uh that's at home.")).toBe(
+      "Or I don't like the food that's at home."
+    );
+  });
+
+  test("a filler before a new sentence becomes a pause", () => {
+    expect(betterOf("I lived there uh One thing I love is food.")).toContain(
+      "I lived there <p:0.5|"
+    );
+  });
+});
+
 describe("phrase fillers", () => {
   test("mark 'you know' once", () => {
     const metrics = computeMetrics(
