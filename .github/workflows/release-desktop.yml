@@ -88,6 +88,41 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf cmake clang libclang-dev
       - run: bun install --frozen-lockfile
+      # macOS keys permissions (the microphone, the sign-in kept in the
+      # Keychain) to the app's signature. Ad-hoc signing names the app by a
+      # hash of each build, so every update looked like a new app and asked
+      # again. A self-signed certificate gives every release the same identity
+      # (bundle id + certificate); Gatekeeper still asks once, as before. Tauri
+      # only resolves Apple-issued names from APPLE_CERTIFICATE, so the
+      # certificate goes into a keychain here and its hash becomes
+      # APPLE_SIGNING_IDENTITY. See docs/DEPLOYMENT.md.
+      - name: Import the macOS signing certificate
+        if: runner.os == 'macOS'
+        env:
+          CERTIFICATE: ${{ secrets.MACOS_SIGNING_CERTIFICATE }}
+          CERTIFICATE_PASSWORD: ${{ secrets.MACOS_SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          if [ -z "$CERTIFICATE" ]; then
+            echo "::warning::No MACOS_SIGNING_CERTIFICATE secret: ad-hoc signing, so macOS asks for permissions again after every update."
+            exit 0
+          fi
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          password=$(openssl rand -hex 16)
+          echo "$CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          security import "$RUNNER_TEMP/signing.p12" -k "$keychain" -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          rm "$RUNNER_TEMP/signing.p12"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$password" "$keychain" > /dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          # Self-signed, so not "valid" (-v): list it anyway and sign by hash.
+          identity=$(security find-identity -p codesigning "$keychain" | awk '/^ *1\)/ {print $2; exit}')
+          if [ -z "$identity" ]; then
+            echo "::error::No code-signing identity in MACOS_SIGNING_CERTIFICATE"
+            exit 1
+          fi
+          echo "APPLE_SIGNING_IDENTITY=$identity" >> "$GITHUB_ENV"
       # Praat for this target is fetched by beforeBuildCommand.
       - uses: tauri-apps/tauri-action@v1
         env:
