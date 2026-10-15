@@ -16,11 +16,15 @@ import {
   withoutAnnotations,
 } from "@/modules/analysis/lib/metrics";
 import type { Metrics } from "@/modules/analysis/lib/metrics";
+import {
+  checkSpeechModel,
+  downloadSpeechModel,
+  getSpeechModel,
+  subscribeSpeechModel,
+} from "@/modules/analysis/lib/model";
 import { buildReport, confirmedFillers } from "@/modules/analysis/lib/report";
 import {
   cancelTranscription,
-  downloadModel,
-  isModelReady,
   measureProsody,
   readSpeech,
   transcribe,
@@ -272,11 +276,22 @@ async function transcribeLocally(
   const wav = await prepareWav(target.id, target.recordingPath);
   throwIfStopped(signal);
 
-  if (!(await isModelReady())) {
+  if (!(await checkSpeechModel())) {
+    // Joins a download the student started from the home page, if any.
     update(target.id, { fraction: 0, stage: "downloading" });
-    await downloadModel((fraction) => {
-      update(target.id, { fraction });
+    const unsubscribe = subscribeSpeechModel(() => {
+      const model = getSpeechModel();
+      if (model.status === "downloading") {
+        update(target.id, {
+          fraction: model.downloadedBytes / model.totalBytes,
+        });
+      }
     });
+    try {
+      await downloadSpeechModel();
+    } finally {
+      unsubscribe();
+    }
     throwIfStopped(signal);
   }
 

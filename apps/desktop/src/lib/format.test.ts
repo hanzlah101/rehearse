@@ -5,6 +5,7 @@ import {
   formatDateTime,
   formatWhen,
   formatDelta,
+  formatBytes,
   formatDuration,
   formatNumber,
   formatPercent,
@@ -44,4 +45,9 @@ test("formats dates relative to today", () => {
   expect(formatWhen(new Date(2026, 9, 8, 9, 0), now)).toBe("Thu");
   expect(formatWhen(new Date(2026, 9, 1, 9, 0), now)).toBe("Oct 1");
   expect(formatWhen(new Date(2025, 11, 30, 9, 0), now)).toBe("Dec 30, 2025");
+});
+
+test("formatBytes", () => {
+  expect(formatBytes(1_656_192_398)).toBe("1.66 GB");
+  expect(formatBytes(0)).toBe("0.00 GB");
 });

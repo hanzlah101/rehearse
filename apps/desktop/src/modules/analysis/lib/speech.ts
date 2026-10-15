@@ -35,20 +35,18 @@ export type Speech = {
 };
 
 type ModelStatus = { ready: boolean; totalBytes: number };
-type DownloadProgress = { downloadedBytes: number; totalBytes: number };
+export type DownloadProgress = { downloadedBytes: number; totalBytes: number };
 
-export async function isModelReady() {
-  const status = await invoke<ModelStatus>("speech_model_status");
-  return status.ready;
+export async function getModelStatus() {
+  return await invoke<ModelStatus>("speech_model_status");
 }
 
-// First use only: ~1.6 GB, resumable, checksum verified in Rust.
-export async function downloadModel(onProgress: (fraction: number) => void) {
-  const channel = new Channel<DownloadProgress>(
-    ({ downloadedBytes, totalBytes }) => {
-      onProgress(downloadedBytes / totalBytes);
-    }
-  );
+// First use only: ~1.6 GB, resumable, checksum verified in Rust. Use
+// downloadSpeechModel (model.ts), which shares one download app-wide.
+export async function downloadModel(
+  onProgress: (progress: DownloadProgress) => void
+) {
+  const channel = new Channel<DownloadProgress>(onProgress);
   await invoke("speech_download_model", { onProgress: channel });
 }
 
