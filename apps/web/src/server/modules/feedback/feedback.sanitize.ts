@@ -3,6 +3,7 @@ import type {
   ContentCheck,
   KeyPoint,
   LanguageFeedback,
+  LanguageOutput,
   SubmitFeedbackInput,
 } from "@/server/modules/feedback/feedback.schemas";
 
@@ -68,7 +69,7 @@ export function sanitizeKeyPoints(keyPoints: KeyPoint[]) {
 }
 
 export function sanitizeLanguage(
-  output: LanguageFeedback,
+  output: LanguageOutput,
   input: SubmitFeedbackInput,
   keyPoints: KeyPoint[],
   limits: Limits
@@ -119,7 +120,16 @@ export function sanitizeLanguage(
     linking: output.linking
       .filter(({ i }) => sentences.has(i))
       .slice(0, limits.linking),
-    rephrasings: quoted(output.rephrasings).slice(0, limits.rephrasings),
+    // The whole sentence is the quote; a rewrite that changes nothing goes.
+    rephrasings: uniqueBy(
+      output.rephrasings.flatMap(({ better, i, why }) => {
+        const quote = sentences.get(i);
+        return quote === undefined || normalize(better) === normalize(quote)
+          ? []
+          : [{ better, i, quote, why }];
+      }),
+      ({ i }) => String(i)
+    ).slice(0, limits.rephrasings),
     repetition: uniqueBy(
       output.repetition.filter(
         ({ phrase }) =>

@@ -25,7 +25,8 @@ export function limitsFor(spokenSeconds: number): Limits {
     emphasis: scale(3, 10),
     grammar: scale(6, 20),
     linking: scale(3, 10),
-    rephrasings: scale(3, 8),
+    // The better version's rewrites: every sentence that needs one.
+    rephrasings: scale(10, 50),
     repetition: scale(4, 12),
     suggestedPauses: scale(5, 20),
     vocabulary: scale(5, 15),
@@ -98,7 +99,10 @@ Fields:
 - repetition: start from the repetition candidates. Drop necessary repeats (technical terms, the topic's own words, key terms, names of people, cities and places) and fillers ("you know", "like"). Label the rest (overused_word, crutch_phrase, repetitive_opener, circular_point) and give 2 to 3 alternatives.
 - grammar: real grammatical errors only. "quote" is the shortest exact span containing the mistake (usually 1 to 6 words, not the whole sentence); "fix" is the corrected version of that span only.
 - vocabulary: vague, weak or too casual words. "quote" is just those words; "better" is one stronger replacement for them.
-- rephrasings: sentences that would be clearer or more professional. "quote" is the whole original sentence, "better" the whole rewritten sentence.
+- rephrasings: these build "the better version", a script of the whole talk the student reads aloud and practises, so it must sound like them on a good day. Rewrite every sentence that still wouldn't read well once fillers are taken out: false starts and restarts ("show the I'll tell you"), cut-off words ("ca- that can be"), broken or run-on sentences, grammar mistakes, literal Urdu phrasing. Leave sentences that are already fine. Give the sentence's index i and "better", the rewrite (no quote: the whole sentence is replaced).
+  - Keep the student's ideas, facts, examples, order and local words (desi, pulao, city names). Don't summarise, merge points, or add anything they didn't say ("In summary", new reasons, new facts).
+  - Use simple, natural spoken English a confident Pakistani university student would really say: short clear sentences, everyday words. No fancy or written-style vocabulary ("considerably", "highly developed", "commence"), no idioms they wouldn't use.
+  - One sentence in, one or two sentences out. "why" names the main fix in a few words.
 - suggestedPauses: choose every pause candidate a confident presenter would actually pause at, by id, and say how long (short about 0.5s, medium about 1s, long 1.5 to 2s) and why, specific to that spot ("let the result land before you explain it", "give the question a moment"). These become the pause marks in the improved version, so be thorough within the limit.
 - emphasis: words or short phrases the student should stress when saying the improved version (the key term, the contrast, the number). "quote" is those exact words from the sentence, "why" says what stressing them does.
 - linking: places where a transition word would help the listener follow; "suggestion" names it ("Add 'Next,' before moving to switch statements"). The word must fit what sentence i actually says compared with the sentence before it: "However" only before a real contrast, "Finally" only before the last point.
@@ -120,7 +124,7 @@ ${keyPointLines(keyPoints)}
 
 Measured (do not recompute): ${JSON.stringify(input.metrics)}
 
-Limits: at most ${limits.grammar} grammar, ${limits.vocabulary} vocabulary, ${limits.rephrasings} rephrasings, ${limits.repetition} repetition, ${limits.suggestedPauses} suggested pauses, ${limits.emphasis} emphasis, ${limits.linking} linking.
+Limits: at most ${limits.grammar} grammar, ${limits.vocabulary} vocabulary, ${limits.rephrasings} rephrasings (the sentences that most need it first), ${limits.repetition} repetition, ${limits.suggestedPauses} suggested pauses, ${limits.emphasis} emphasis, ${limits.linking} linking.
 
 Filler candidates (id, sentence, word): ${JSON.stringify(input.fillerCandidates.map(({ i, id, word }) => [id, i, word]))}
 

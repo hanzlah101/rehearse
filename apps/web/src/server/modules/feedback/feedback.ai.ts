@@ -27,7 +27,7 @@ import {
 import {
   contentCheckSchema,
   keyPointsOutputSchema,
-  languageFeedbackSchema,
+  languageOutputSchema,
 } from "@/server/modules/feedback/feedback.schemas";
 import type {
   KeyPoint,
@@ -160,7 +160,7 @@ export async function reviewLanguage(
     instructions: LANGUAGE_INSTRUCTIONS,
     name: "language_feedback",
     prompt: languagePrompt(input, keyPoints, limits),
-    schema: languageFeedbackSchema,
+    schema: languageOutputSchema,
   });
 
   return {
