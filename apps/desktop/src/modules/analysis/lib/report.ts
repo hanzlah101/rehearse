@@ -64,6 +64,38 @@ function escapeRegExp(text: string) {
 
 // The confirmed fillers by word: always-fillers plus the ambiguous words the
 // LLM confirmed ("like" as hesitation, not "I like it").
+// After these, "like" is the verb ("I don't like it", "to like"), never a
+// filler, whatever the review says; a comma between them ("I, like, went")
+// still makes it one.
+const LIKE_AS_VERB_AFTER = new Set([
+  "did",
+  "didn't",
+  "do",
+  "does",
+  "doesn't",
+  "don't",
+  "i",
+  "really",
+  "they",
+  "to",
+  "we",
+  "would",
+  "wouldn't",
+  "you",
+]);
+
+function isVerbLike(metrics: Metrics, words: number[]) {
+  const [index] = words;
+  const before = index === undefined ? undefined : metrics.words[index - 1];
+  return (
+    words.length === 1 &&
+    metrics.words[index ?? -1]?.normalized === "like" &&
+    before !== undefined &&
+    LIKE_AS_VERB_AFTER.has(before.normalized) &&
+    !/[,;:.!?]$/u.test(before.text)
+  );
+}
+
 export function confirmedFillers(metrics: Metrics, result: FeedbackResult) {
   const confirmed = new Set(
     result.language.fillerConfirmations
@@ -74,7 +106,9 @@ export function confirmedFillers(metrics: Metrics, result: FeedbackResult) {
   const groups = [
     ...metrics.fillers.map((word) => [word]),
     ...metrics.fillerCandidates
-      .filter(({ id }) => confirmed.has(id))
+      .filter(
+        ({ id, words }) => confirmed.has(id) && !isVerbLike(metrics, words)
+      )
       .map(({ words }) => words),
   ];
 
@@ -320,22 +354,157 @@ function isAtBreak(
   );
 }
 
-// The silent pause that replaces a filler at a natural break, unless a pause
-// the LLM picked right after it already covers the spot. Mid-phrase fillers
-// ("I don't uh like the food") just go: a pause there would break the phrase.
+// Little words a phrase can't stop on: a pause right after one ("and ⏸",
+// "the ⏸", "don't ⏸") always sounds broken.
+const LEADING_WORDS = new Set([
+  "a",
+  "about",
+  "am",
+  "an",
+  "and",
+  "are",
+  "as",
+  "at",
+  "be",
+  "been",
+  "but",
+  "by",
+  "can",
+  "can't",
+  "could",
+  "did",
+  "do",
+  "does",
+  "don't",
+  "for",
+  "from",
+  "had",
+  "has",
+  "have",
+  "he",
+  "her",
+  "his",
+  "i",
+  "i'm",
+  "in",
+  "into",
+  "is",
+  "it's",
+  "its",
+  "my",
+  "nor",
+  "of",
+  "on",
+  "or",
+  "our",
+  "she",
+  "should",
+  "so",
+  "that's",
+  "the",
+  "their",
+  "these",
+  "they",
+  "this",
+  "those",
+  "to",
+  "was",
+  "we",
+  "were",
+  "will",
+  "with",
+  "would",
+  "you",
+  "your",
+]);
+
+// Words that open a new clause: a pause before one is natural even
+// mid-sentence ("the food ⏸ because…").
+const CLAUSE_OPENERS = new Set([
+  "after",
+  "although",
+  "and",
+  "because",
+  "before",
+  "but",
+  "if",
+  "or",
+  "since",
+  "so",
+  "then",
+  "though",
+  "unless",
+  "until",
+  "when",
+  "where",
+  "which",
+  "while",
+  "who",
+]);
+
+// Joining words that can stand side by side once fillers go ("And, you
+// know, but because"): a false start, so the first one goes too.
+const JOINERS = new Set(["and", "but", "or", "so"]);
+
+// The nearest word before `index` in this sentence that stays.
+function previousKept(
+  metrics: Metrics,
+  sentence: Metrics["sentences"][number],
+  index: number,
+  removed: Set<number>
+) {
+  for (let at = index - 1; at >= sentence.words[0]; at -= 1) {
+    if (!removed.has(at)) {
+      return { at, word: metrics.words[at] };
+    }
+  }
+  return null;
+}
+
+// Whether a pause before word `index` is logical: not right after a little
+// word like "and" or "the". A comma after one only counts as a break at the
+// start of the sentence ("So, ⏸ today"); mid-sentence it's usually just the
+// recognizer wrapping a filler ("take care of, you know, yourself").
+function canPauseBefore(
+  metrics: Metrics,
+  sentence: Metrics["sentences"][number],
+  index: number,
+  removed: Set<number>
+) {
+  const before = previousKept(metrics, sentence, index, removed);
+  if (before === null || !LEADING_WORDS.has(before.word?.normalized ?? "")) {
+    return true;
+  }
+  return (
+    before.at === sentence.words[0] && /[,;:]$/u.test(before.word?.text ?? "")
+  );
+}
+
+// The silent pause that replaces a filler where a speaker would logically
+// pause: at a natural break, or before a word that opens a new clause, and
+// never right after a little word like "and" or "the" (canPauseBefore).
+// Elsewhere the filler
+// just goes. Skipped when a pause the LLM picked right after it covers it.
 function fillerPause(
-  text: string,
-  offsets: SentenceLayout["offsets"],
+  { metrics, offsets, removed, sentence, text }: FillerContext,
   group: number[],
   pauseByWord: Map<number, Pause>
 ) {
-  const first = offsets.get(group[0] ?? -1);
-  const last = offsets.get(group.at(-1) ?? -1);
+  const firstIndex = group[0] ?? -1;
+  const lastIndex = group.at(-1) ?? -1;
+  const first = offsets.get(firstIndex);
+  const last = offsets.get(lastIndex);
+  const after = metrics.words[lastIndex + 1];
   if (
     first === undefined ||
     last === undefined ||
-    pauseByWord.has((group.at(-1) ?? -1) + 1) ||
-    !isAtBreak(text, first, last)
+    pauseByWord.has(lastIndex + 1) ||
+    !canPauseBefore(metrics, sentence, firstIndex, removed) ||
+    !(
+      isAtBreak(text, first, last) ||
+      (lastIndex + 1 <= sentence.words[1] &&
+        CLAUSE_OPENERS.has(after?.normalized ?? ""))
+    )
   ) {
     return "";
   }
@@ -345,6 +514,66 @@ function fillerPause(
     why: `Pause silently instead of “${said}”. A beat of silence sounds sure; a filler sounds unsure.`,
   })} `;
 }
+
+// Words the better version drops besides fillers: repeats ("the the", "in uh
+// in", "for the for the": the first copy goes), cut-off words ("ca- that can
+// be") and stray dashes, and a joining word left standing before another
+// once fillers are out ("And, you know, but because" → "But because").
+function wordsToDrop(
+  metrics: Metrics,
+  sentence: Metrics["sentences"][number],
+  removed: Set<number>
+) {
+  const [firstWord, lastWord] = sentence.words;
+  const drop = new Set<number>();
+  const kept: number[] = [];
+  const norm = (index: number | undefined) =>
+    index === undefined ? "" : (metrics.words[index]?.normalized ?? "");
+  for (let index = firstWord; index <= lastWord; index += 1) {
+    const word = metrics.words[index];
+    if (removed.has(index) || word === undefined) {
+      continue;
+    }
+    if (/^\p{L}*[-\u2013\u2014]$/u.test(word.text)) {
+      drop.add(index);
+      continue;
+    }
+    const one = kept.at(-1);
+    const two = kept.at(-2);
+    const three = kept.at(-3);
+    if (word.normalized !== "" && norm(one) === word.normalized) {
+      drop.add(one ?? -1);
+    } else if (
+      // "for the for the": X Y X Y, the first pair goes.
+      word.normalized !== "" &&
+      three !== undefined &&
+      norm(three) === norm(one) &&
+      norm(two) === word.normalized
+    ) {
+      drop.add(three);
+      drop.add(two ?? -1);
+    } else if (
+      one !== undefined &&
+      one < index - 1 &&
+      JOINERS.has(norm(one)) &&
+      JOINERS.has(word.normalized)
+    ) {
+      drop.add(one);
+    }
+    kept.push(index);
+  }
+  drop.delete(-1);
+  return drop;
+}
+
+type FillerContext = {
+  metrics: Metrics;
+  offsets: SentenceLayout["offsets"];
+  // Filler and stutter words taken out of the sentence.
+  removed: Set<number>;
+  sentence: Metrics["sentences"][number];
+  text: string;
+};
 
 // The same talk with the fixes applied, as a script to read aloud: changed
 // wording (what was said and why), fillers and stutters removed (a silent
@@ -418,36 +647,36 @@ function betterSentence(
         : first[0];
     edit({ end: last[1], start }, markup);
   };
-  for (const group of fillerGroups) {
+  const [firstWord, lastWord] = sentence.words;
+  const inSentence = fillerGroups.filter(
+    (group) => (group[0] ?? -1) >= firstWord && (group[0] ?? -1) <= lastWord
+  );
+  const removed = new Set(inSentence.flat());
+  for (const group of inSentence) {
     remove(
       group[0] ?? -1,
       group.at(-1) ?? -1,
-      fillerPause(text, offsets, group, pauseByWord)
+      fillerPause(
+        { metrics, offsets, removed, sentence, text },
+        group,
+        pauseByWord
+      )
     );
   }
-  // Cut-off words ("ca- that can be") and stray dashes go too.
-  let previous = "";
-  const [firstWord, lastWord] = sentence.words;
-  for (let index = firstWord; index <= lastWord; index += 1) {
-    const word = metrics.words[index];
-    const isStutter =
-      word !== undefined &&
-      word.normalized !== "" &&
-      word.normalized === previous;
-    const isFragment =
-      word !== undefined && /^\p{L}*[-\u2013\u2014]$/u.test(word.text);
-    previous = word?.normalized ?? "";
-    if (isStutter || isFragment) {
-      remove(index, index, "");
-    }
+  const dropped = wordsToDrop(metrics, sentence, removed);
+  for (const index of dropped) {
+    remove(index, index, "");
   }
+  const gone = new Set([...removed, ...dropped]);
 
   const inserts = [...pauseByWord].flatMap(([word, pause]) => {
     const offset = offsets.get(word);
     const isEdited =
       offset !== undefined &&
       edits.some((item) => offset[0] > item.start && offset[0] < item.end);
-    return offset === undefined || isEdited
+    return offset === undefined ||
+      isEdited ||
+      !canPauseBefore(metrics, sentence, word, gone)
       ? []
       : [{ at: offset[0], markup: `${pauseMarkup(pause)} ` }];
   });

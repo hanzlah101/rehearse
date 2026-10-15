@@ -251,6 +251,50 @@ describe("filler pauses", () => {
     );
   });
 
+  test("no pause after a joining word, and a false-start joiner goes", () => {
+    expect(
+      betterOf("And um, but uh because it's not a big city, there are cons.")
+    ).toBe("But because it's not a big city, there are cons.");
+  });
+
+  test("repeats go, also across a filler and as pairs", () => {
+    expect(
+      betterOf("For the for the main issue is dust in uh in the way.")
+    ).toBe("For the main issue is dust in the way.");
+  });
+
+  test("'like' after 'don't' stays a verb", () => {
+    const metrics = computeMetrics(
+      wordsOf("I usually don't like the taste of it."),
+      null,
+      "Food"
+    );
+    const like = metrics.fillerCandidates.find(({ word }) => word === "like");
+    const { feedback } = buildReport({
+      metrics,
+      result: {
+        ...result,
+        language: {
+          ...result.language,
+          emphasis: [],
+          fillerConfirmations: [{ id: like?.id ?? -1, isFiller: true }],
+          grammar: [],
+          repetition: [],
+          vocabulary: [],
+        },
+      },
+      spokenSeconds: 40,
+      targetSeconds: 60,
+    });
+    expect(feedback.better).toBe("I usually don't like the taste of it.");
+  });
+
+  test("a mid-phrase filler before a new clause becomes a pause", () => {
+    expect(betterOf("I like the food uh because it is fresh.")).toContain(
+      "I like the food <p:0.5|"
+    );
+  });
+
   test("a filler before a new sentence becomes a pause", () => {
     expect(betterOf("I lived there uh One thing I love is food.")).toContain(
       "I lived there <p:0.5|"
@@ -287,8 +331,7 @@ describe("phrase fillers", () => {
     expect(transcriptStats(parseTranscript(feedback.transcript)).fillers).toBe(
       1
     );
-    expect(feedback.better).toContain(
-      "So we <p:0.5|Pause silently instead of “you know”."
-    );
+    // No pause after "we": a comma mid-sentence only wraps the filler.
+    expect(feedback.better).toContain("So we tried it.");
   });
 });
