@@ -245,6 +245,12 @@ describe("filler pauses", () => {
     );
   });
 
+  test("cut-off words and stray dashes go", () => {
+    expect(betterOf("That's ca- that can be - very harmful.")).toBe(
+      "That's that can be very harmful."
+    );
+  });
+
   test("a filler before a new sentence becomes a pause", () => {
     expect(betterOf("I lived there uh One thing I love is food.")).toContain(
       "I lived there <p:0.5|"

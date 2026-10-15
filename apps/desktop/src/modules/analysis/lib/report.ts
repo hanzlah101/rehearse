@@ -425,6 +425,7 @@ function betterSentence(
       fillerPause(text, offsets, group, pauseByWord)
     );
   }
+  // Cut-off words ("ca- that can be") and stray dashes go too.
   let previous = "";
   const [firstWord, lastWord] = sentence.words;
   for (let index = firstWord; index <= lastWord; index += 1) {
@@ -433,8 +434,10 @@ function betterSentence(
       word !== undefined &&
       word.normalized !== "" &&
       word.normalized === previous;
+    const isFragment =
+      word !== undefined && /^\p{L}*[-\u2013\u2014]$/u.test(word.text);
     previous = word?.normalized ?? "";
-    if (isStutter) {
+    if (isStutter || isFragment) {
       remove(index, index, "");
     }
   }
