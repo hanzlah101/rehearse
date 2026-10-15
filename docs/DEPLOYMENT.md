@@ -32,9 +32,12 @@ The installed app runs at `tauri://localhost` (macOS, Linux) or `http://tauri.lo
 Installed apps only accept updates signed with this key. **If you lose the private key, existing installs can never update again.** Store it and its password in a password manager.
 
 ```sh
+mkdir -p ~/.tauri
 cd apps/desktop
-bunx tauri signer generate -w ~/.tauri/rehearse.key
+bun run tauri signer generate -w ~/.tauri/rehearse.key
 ```
+
+Use `bun run tauri` (the project's `@tauri-apps/cli`), not `bunx tauri`: on npm, `tauri` is an unrelated old package. Run it in your own terminal; it asks for the password.
 
 - Paste the contents of `~/.tauri/rehearse.key.pub` into `plugins.updater.pubkey` in `apps/desktop/src-tauri/tauri.conf.json` and commit it (it's public).
 - The private key and password go to GitHub (next step), nowhere else.
@@ -49,7 +52,7 @@ Settings → Secrets and variables → Actions:
 | Secret | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | the password you chose |
 | Variable | `API_URL` | production API, e.g. `https://rehearse.netlify.app` (baked into the app as `VITE_API_URL`) |
 
-Settings → Actions → General → Workflow permissions: **Read and write** (the release workflow creates releases).
+Settings → Actions → General → Workflow permissions can stay **Read repository contents** (the default): the release jobs ask for write access themselves.
 
 Optional: Settings → Branches → protect `main` and require the **CI** checks to pass before merging.
 
@@ -66,8 +69,8 @@ Optional: Settings → Branches → protect `main` and require the **CI** checks
 
 ### 5. Netlify
 
-1. Add new site → import the GitHub repo. Set **Base directory** to `apps/web`; the rest comes from `apps/web/netlify.toml` (build `bun run build`, publish `dist/client`).
-2. Site configuration → Environment variables:
+1. Add new site → import the GitHub repo. In Build settings set **Base directory** to `apps/web` and leave **Package directory** and **Build command** empty, so `apps/web/netlify.toml` supplies the build (and the production migration). If the UI insists on a **Publish directory**, it's `apps/web/dist/client` (UI paths start at the repo root). The deploy log's "Resolved config" should show `BUN_VERSION` and a non-`ui` command origin; if it says `ui`, the file wasn't read (a wrong Package directory does this).
+2. Site configuration → Environment variables. Mark only the real secrets (`DATABASE_URL`, `GROQ_API_KEY`, `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`) as "Contains secret values". Netlify fails any build whose secret values appear in the repo, and `production` and the Tauri origins do.
 
 | Name | Value | Contexts |
 | --- | --- | --- |
@@ -77,7 +80,7 @@ Optional: Settings → Branches → protect `main` and require the **CI** checks
 | `INNGEST_EVENT_KEY` | from Inngest | All |
 | `INNGEST_SIGNING_KEY` | from Inngest | All |
 | `CORS_ORIGINS` | `tauri://localhost,http://tauri.localhost` (the installed app on macOS/Linux and Windows) | All |
-| `NODE_ENV` | `production` | Production |
+| `NODE_ENV` | `production` | Production, scope **Functions** only (the server reads it at runtime; set for builds it can make the install skip devDependencies) |
 
 3. Production deploys run `bun run db:migrate` before building (`apps/web/netlify.toml`), so new migrations apply on deploy.
 4. Function limit: 60 s per request, not configurable. Each Inngest step is one request; LLM calls time out at 50 s (`FEEDBACK_CALL_TIMEOUT_MS`) and Inngest retries them.
