@@ -5,6 +5,7 @@ import {
   reviewLanguage,
 } from "@/server/modules/feedback/feedback.ai";
 import type { Usage } from "@/server/modules/feedback/feedback.ai";
+import { FEEDBACK_START_TIMEOUT } from "@/server/modules/feedback/feedback.constants";
 import {
   feedbackCancelled,
   feedbackChannel,
@@ -62,7 +63,7 @@ export const reviewAttempt = inngest.createFunction(
       );
     },
     retries: 4,
-    timeouts: { finish: "15m" },
+    timeouts: { finish: "15m", start: FEEDBACK_START_TIMEOUT },
     triggers: [feedbackRequested],
   },
   async ({ attempt, event, step }) => {

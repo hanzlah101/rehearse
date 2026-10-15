@@ -14,6 +14,12 @@ export const FEEDBACK_FALLBACK_AFTER_ATTEMPTS = 2;
 // call fails cleanly instead of being killed mid-step.
 export const FEEDBACK_CALL_TIMEOUT_MS = 50_000;
 
+// A run that hasn't started this long after its event is cancelled by
+// Inngest. A job still queued a little later has no run left (its event was
+// lost, e.g. Inngest couldn't reach the app), so reading it sends a new one.
+export const FEEDBACK_START_TIMEOUT = "5m";
+export const FEEDBACK_STUCK_AFTER_MS = 6 * 60 * 1000;
+
 // Talks are 1–10 minutes; leave headroom for overtime.
 export const FEEDBACK_MAX_TARGET_SECONDS = 900;
 export const FEEDBACK_MAX_SENTENCES = 800;

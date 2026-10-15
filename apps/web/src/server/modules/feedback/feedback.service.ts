@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, sql } from "drizzle-orm";
+import { and, asc, eq, gt, lt, sql } from "drizzle-orm";
 import { getClientSubscriptionToken } from "inngest/react";
 
 import { db } from "@/server/db/client";
@@ -10,6 +10,7 @@ import {
 } from "@/server/db/schema";
 import type { FeedbackJob } from "@/server/db/schema";
 import { inngest } from "@/server/inngest";
+import { FEEDBACK_STUCK_AFTER_MS } from "@/server/modules/feedback/feedback.constants";
 import {
   FeedbackRateLimited,
   FeedbackUnavailable,
@@ -220,10 +221,59 @@ export async function submitFeedback(
   return await startRun(created);
 }
 
+// Sends a new event for a job queued for longer than any run can wait to
+// start (FEEDBACK_START_TIMEOUT): its event never started one, e.g. it came
+// before the app was synced with Inngest. Only one concurrent read wins the
+// update, and a failed send is retried on a later read.
+async function restartIfStuck(job: FeedbackJob) {
+  if (
+    job.status !== "queued" ||
+    job.updatedAt.getTime() > Date.now() - FEEDBACK_STUCK_AFTER_MS
+  ) {
+    return;
+  }
+
+  const [touched] = await db
+    .update(feedbackJobs)
+    .set({ status: "queued" })
+    .where(
+      and(
+        eq(feedbackJobs.id, job.id),
+        eq(feedbackJobs.status, "queued"),
+        lt(
+          feedbackJobs.updatedAt,
+          new Date(Date.now() - FEEDBACK_STUCK_AFTER_MS)
+        )
+      )
+    )
+    .returning();
+
+  if (touched === undefined) {
+    return;
+  }
+
+  try {
+    await inngest.send(
+      feedbackRequested.create(
+        { jobId: touched.id, studentId: touched.studentId },
+        { id: `${touched.id}:${touched.updatedAt.getTime()}` }
+      )
+    );
+    console.warn(`[feedback] restarted stuck review ${touched.id}`);
+  } catch (error) {
+    console.error("[feedback] couldn't restart a stuck review", error);
+  }
+}
+
+// The desktop polls this while it waits, which also restarts stuck reviews.
 export async function getFeedbackJob(studentId: string, id: string) {
   const job = await findJob(studentId, id);
+  if (job === undefined) {
+    return null;
+  }
 
-  return job === undefined ? null : toView(job);
+  await restartIfStuck(job);
+  return toView(job);
 }
 
 // Cancels a running review and forgets the job (the desktop deleted its
