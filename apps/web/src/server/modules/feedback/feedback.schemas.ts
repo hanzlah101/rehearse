@@ -25,11 +25,23 @@ export const PAUSE_KINDS = [
   "rushed_sentence",
 ] as const;
 
+// Feature flag: students (by student ID) who may re-run a finished review,
+// for testing the pipeline on the same audio. The desktop shows the action
+// from it and the server enforces it.
+export const FEEDBACK_RERUN_STUDENT_IDS: readonly string[] = ["01"];
+
+export function canRerunFeedback(studentId: string) {
+  return FEEDBACK_RERUN_STUDENT_IDS.includes(studentId);
+}
+
 export const submitFeedbackInputSchema = z
   .object({
     // The desktop's attempt id: submitting the same attempt again returns
     // its existing job instead of starting another.
     attemptId: z.uuid(),
+    // Review a finished attempt again with this input (students with the
+    // re-run flag only; doesn't count toward the daily limit again).
+    rerun: z.boolean().default(false),
     // Ambiguous filler words ("like", "so"…) for the LLM to confirm by id.
     fillerCandidates: z
       .array(

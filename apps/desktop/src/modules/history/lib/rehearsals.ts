@@ -421,6 +421,24 @@ export async function queueAnalysis(id: string) {
     );
 }
 
+// Re-run (feature flag): a finished or failed attempt goes back into the
+// queue with its result cleared, so the whole pipeline runs again on the
+// same recording and the page shows the progress.
+export async function queueRerun(id: string) {
+  await db
+    .update(attempts)
+    .set({
+      error: null,
+      feedback: null,
+      feedbackJobId: null,
+      score: null,
+      status: "processing",
+    })
+    .where(
+      and(eq(attempts.id, id), inArray(attempts.status, ["ready", "failed"]))
+    );
+}
+
 export async function completeAnalysis(
   id: string,
   { feedback, score }: Pick<AttemptRow, "feedback" | "score">

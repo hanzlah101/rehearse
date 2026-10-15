@@ -1,12 +1,13 @@
 import { openapi } from "@orpc/openapi";
 
 import { inputValidation } from "@/server/core/input-validation";
-import { NotFound } from "@/server/errors";
+import { Forbidden, NotFound } from "@/server/errors";
 import {
   FeedbackRateLimited,
   FeedbackUnavailable,
 } from "@/server/modules/feedback/feedback.errors";
 import {
+  canRerunFeedback,
   feedbackJobParamsSchema,
   feedbackJobSchema,
   feedbackSubscriptionSchema,
@@ -28,7 +29,7 @@ const submit = protectedOS
   .meta(
     openapi({
       description:
-        "Starts the AI review of an attempt the desktop transcribed and measured. Runs in the background; follow it with the subscription or by polling. Submitting the same attempt again returns its job (a failed one starts over).",
+        "Starts the AI review of an attempt the desktop transcribed and measured. Runs in the background; follow it with the subscription or by polling. Submitting the same attempt again returns its job (a failed one starts over; with `rerun`, students with the re-run flag start a finished one over).",
       method: "POST",
       path: "/feedback",
       successStatus: 202,
@@ -43,10 +44,15 @@ const submit = protectedOS
     [FeedbackRateLimited.code]: FeedbackRateLimited,
     [FeedbackUnavailable.code]: FeedbackUnavailable,
   })
-  .handler(
-    async ({ context, input }) =>
-      await submitFeedback(context.session.student.id, input)
-  );
+  .handler(async ({ context, input }) => {
+    const { student } = context.session;
+    if (input.rerun && !canRerunFeedback(student.studentId)) {
+      throw new Forbidden({
+        message: "Re-running reviews isn't enabled for you.",
+      });
+    }
+    return await submitFeedback(student.id, input);
+  });
 
 const usage = protectedOS
   .meta(

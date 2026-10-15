@@ -1,9 +1,11 @@
-import { IconMicrophoneFilled } from "@tabler/icons-react";
+import { canRerunFeedback } from "@server/modules/feedback/feedback.schemas";
+import { IconMicrophoneFilled, IconReload } from "@tabler/icons-react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
 import { formatNumber, formatPercent } from "@/lib/format";
+import { rerunAnalysis } from "@/modules/analysis/lib/runner";
 import { useSession } from "@/modules/auth/queries/session";
 import { rehearsalQueryOptions } from "@/modules/history/queries/rehearsals";
 import { AttemptGuide } from "@/modules/rehearsal/components/attempt-guide";
@@ -40,7 +42,9 @@ export function RehearsalNotFound() {
 
 // One rehearsal thread: every attempt on a topic, the score trend that picks
 // between them, and the picked attempt's guide. The sticky toolbar holds the
-// attempt switcher and "Try again" (a session on the same topic and length).
+// attempt switcher and "Try again" (a session on the same topic and length);
+// students with the re-run flag also get "Re-run analysis" for the picked
+// attempt.
 export function RehearsalPage() {
   const { id } = routeApi.useParams();
   const { student } = useSession();
@@ -62,6 +66,9 @@ export function RehearsalPage() {
   const scores = attempts.flatMap(({ score }) =>
     score === null ? [] : [score]
   );
+  const canRerun =
+    canRerunFeedback(student.studentId) &&
+    (selected.status === "ready" || selected.status === "failed");
 
   function select(n: number) {
     void navigate({
@@ -86,23 +93,35 @@ export function RehearsalPage() {
           onSelect={select}
           selected={selected.n}
         />
-        <Button
-          className="shrink-0"
-          onPress={() => {
-            void navigate({
-              search: {
-                minutes,
-                rehearsal: rehearsal.id,
-                topic: rehearsal.topic,
-                topicId: rehearsal.topicId ?? undefined,
-              },
-              to: "/session",
-            });
-          }}
-        >
-          <IconMicrophoneFilled data-icon="inline-start" />
-          Try again
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          {canRerun && (
+            <Button
+              onPress={() => {
+                void rerunAnalysis(selected.id);
+              }}
+              variant="outline"
+            >
+              <IconReload data-icon="inline-start" />
+              Re-run analysis
+            </Button>
+          )}
+          <Button
+            onPress={() => {
+              void navigate({
+                search: {
+                  minutes,
+                  rehearsal: rehearsal.id,
+                  topic: rehearsal.topic,
+                  topicId: rehearsal.topicId ?? undefined,
+                },
+                to: "/session",
+              });
+            }}
+          >
+            <IconMicrophoneFilled data-icon="inline-start" />
+            Try again
+          </Button>
+        </div>
       </div>
 
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-12 px-6 py-10 md:px-10">

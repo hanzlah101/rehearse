@@ -25,6 +25,7 @@ import {
 import { buildReport, confirmedFillers } from "@/modules/analysis/lib/report";
 import {
   cancelTranscription,
+  deleteSpeech,
   measureProsody,
   readSpeech,
   transcribe,
@@ -38,6 +39,7 @@ import {
   getAnalysisTarget,
   listAttemptsToAnalyse,
   queueAnalysis,
+  queueRerun,
   setFeedbackJob,
 } from "@/modules/history/lib/rehearsals";
 import type { AnalysisTarget } from "@/modules/history/lib/rehearsals";
@@ -118,6 +120,11 @@ type Context = {
 let context: Context | null = null;
 const progress = new Map<string, AnalysisProgress>();
 const listeners = new Set<() => void>();
+// Attempts re-run with the feature flag: their next submit asks the server to
+// review them again. In memory only: after a restart a re-run that hadn't
+// been sent yet gets its old review back.
+const reruns = new Set<string>();
+
 const controllers = new Map<string, AbortController>();
 const localQueue: string[] = [];
 let isLocalRunning = false;
@@ -349,6 +356,7 @@ async function requestReview(
       ({ beforeWord, i, id, kind }) => ({ beforeWord, i, id, kind })
     ),
     repetitionCandidates: metrics.repetitionCandidates,
+    rerun: reruns.has(target.id),
     sentences: metrics.sentences.map(({ end, i, start, text }) => ({
       end,
       i,
@@ -366,6 +374,7 @@ async function requestReview(
     // oxlint-disable-next-line no-await-in-loop -- retries one at a time
     const { data, error } = await safe(api.feedback.submit(input));
     if (error === null) {
+      reruns.delete(target.id);
       update(target.id, { isOffline: false, serverStage: data.stage });
       void refreshUsage();
       return data;
@@ -654,6 +663,17 @@ export async function cancelAnalysis(id: string) {
   }
   forget(id);
   await cancelQuietly(id);
+}
+
+// Re-runs the whole pipeline on the same recording (feature flag, see
+// FEEDBACK_RERUN_STUDENT_IDS): transcript, Praat, metrics and the review.
+export async function rerunAnalysis(id: string) {
+  await cancelAnalysis(id);
+  await deleteSpeech(id);
+  await queueRerun(id);
+  reruns.add(id);
+  await refresh();
+  enqueueAnalysis(id);
 }
 
 // Logged out: stop everything; unfinished work resumes on the next login.
