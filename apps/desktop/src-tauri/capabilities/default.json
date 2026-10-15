@@ -7,6 +7,8 @@
     "core:default",
     "opener:default",
     "core:window:allow-start-dragging",
+    "updater:default",
+    "process:allow-restart",
     "window-state:default",
     {
       "identifier": "opener:allow-open-url",

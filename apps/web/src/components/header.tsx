@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Badge } from "@/components/ui/badge";
 import { BlurFade } from "@/components/ui/blur-fade";
 
 // Sticky over the page; drops in on load. Clear at the top, so the hero's glow
@@ -24,9 +25,12 @@ export function Header() {
         data-scrolled={isScrolled ? "" : undefined}
       >
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 sm:px-8 lg:px-12">
-          <Link aria-label="Rehearse home" to="/">
-            <Logo />
-          </Link>
+          <div className="flex items-center gap-2.5">
+            <Link aria-label="Rehearse home" to="/">
+              <Logo />
+            </Link>
+            <Badge>Beta</Badge>
+          </div>
           <nav className="flex items-center gap-4">
             <Link
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"

@@ -1,3 +1,4 @@
+mod auth;
 mod db;
 mod speech;
 
@@ -8,6 +9,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
             let database = db::open(app.handle())?;
@@ -16,6 +19,9 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            auth::auth_token_get,
+            auth::auth_token_set,
+            auth::auth_token_clear,
             db::db_execute,
             db::db_batch,
             speech::speech_model_status,

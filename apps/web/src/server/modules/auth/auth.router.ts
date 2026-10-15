@@ -1,5 +1,5 @@
 import { openapi } from "@orpc/openapi";
-import { deleteCookie, getCookie, setCookie } from "@orpc/server/helpers";
+import { deleteCookie, setCookie } from "@orpc/server/helpers";
 
 import { COOKIE_OPTIONS } from "@/server/constants";
 import { inputValidation } from "@/server/core/input-validation";
@@ -9,9 +9,11 @@ import {
   AuthIncorrectPassword,
   AuthInvalidCredentials,
 } from "@/server/modules/auth/auth.errors";
+import { getSessionToken } from "@/server/modules/auth/auth.middleware";
 import {
   changePasswordInputSchema,
   loginInputSchema,
+  loginOutputSchema,
   sessionSchema,
   studentSchema,
   updateProfileInputSchema,
@@ -31,7 +33,7 @@ const login = publicOS
   .meta(
     openapi({
       description:
-        "Checks the student ID and password and starts a 30-day session stored in an HttpOnly cookie.",
+        "Checks the student ID and password and starts a 30-day session: stored in an HttpOnly cookie for browsers, and returned as `token` for clients that send `Authorization: Bearer`.",
       method: "POST",
       path: "/auth/login",
       summary: "Log in",
@@ -40,7 +42,7 @@ const login = publicOS
   )
   .use(inputValidation)
   .input(loginInputSchema)
-  .output(sessionSchema)
+  .output(loginOutputSchema)
   .errors({ [AuthInvalidCredentials.code]: AuthInvalidCredentials })
   .handler(async ({ context, input }) => {
     const student = await authenticate(input);
@@ -59,13 +61,14 @@ const login = publicOS
       expires: expiresAt,
     });
 
-    return { expiresAt, student };
+    return { expiresAt, student, token };
   });
 
 const session = protectedOS
   .meta(
     openapi({
-      description: "Returns the student behind the current session cookie.",
+      description:
+        "Returns the student behind the current session (cookie or bearer token).",
       method: "GET",
       path: "/auth/session",
       summary: "Get current session",
@@ -79,7 +82,7 @@ const logout = publicOS
   .meta(
     openapi({
       description:
-        "Revokes the current session, if any, and clears the cookie.",
+        "Revokes the current session (cookie or bearer token), if any, and clears the cookie.",
       method: "POST",
       path: "/auth/logout",
       successStatus: 204,
@@ -88,7 +91,7 @@ const logout = publicOS
     })
   )
   .handler(async ({ context }) => {
-    const token = getCookie(context.headers, SESSION_COOKIE_NAME);
+    const token = getSessionToken(context.headers);
 
     if (token !== undefined) {
       await revokeSession(token);

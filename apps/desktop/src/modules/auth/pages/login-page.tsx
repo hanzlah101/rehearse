@@ -1,6 +1,7 @@
 import loginDark from "@/assets/login-dark.webp";
 import loginLight from "@/assets/login-light.webp";
 import logo from "@/assets/logo.svg";
+import { Badge } from "@/components/ui/badge";
 import { LoginForm } from "@/modules/auth/components/login-form";
 
 export function LoginPage() {
@@ -35,7 +36,10 @@ export function LoginPage() {
       <div className="flex flex-1 items-center justify-center px-6 py-12 sm:px-10 xl:px-16">
         <div className="flex w-full max-w-100 flex-col gap-10">
           <div className="flex flex-col gap-5">
-            <img src={logo} alt="" className="size-10" />
+            <div className="flex items-center gap-3">
+              <img src={logo} alt="" className="size-10" />
+              <Badge>Beta</Badge>
+            </div>
             <div className="flex flex-col gap-2">
               <h2 className="text-3xl font-semibold text-balance">
                 Welcome back

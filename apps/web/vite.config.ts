@@ -1,5 +1,6 @@
 import process from "node:process";
 
+import netlify from "@netlify/vite-plugin-tanstack-start";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
@@ -11,7 +12,7 @@ if (process.env.URL !== undefined) {
   process.env.VITE_SITE_URL ??= process.env.URL;
 }
 
-const config = defineConfig({
+const config = defineConfig(({ command }) => ({
   plugins: [
     tanstackStart({
       importProtection: {
@@ -27,9 +28,13 @@ const config = defineConfig({
     }),
     viteReact(),
     tailwindcss(),
+    // Builds server routes and functions as Netlify Functions (netlify.toml).
+    // Build only: its dev emulation (edge functions server) crashes `vite dev`,
+    // and local dev doesn't need it.
+    ...(command === "build" ? [netlify()] : []),
   ],
   resolve: { tsconfigPaths: true },
   server: { cors: false },
-});
+}));
 
 export default config;

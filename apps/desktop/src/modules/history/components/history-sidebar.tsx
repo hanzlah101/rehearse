@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   ContextMenu,
@@ -170,6 +171,7 @@ export function HistorySidebar({ className }: { className?: string }) {
           <span className="font-heading text-base font-semibold tracking-tight">
             Rehearse
           </span>
+          <Badge>Beta</Badge>
         </div>
         <Button
           className="w-full"

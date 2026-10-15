@@ -1,12 +1,12 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Rehearse",
-  "version": "0.1.0",
+  "version": "../package.json",
   "identifier": "app.rehearse.desktop",
   "build": {
-    "beforeDevCommand": "bun run dev",
+    "beforeDevCommand": "bun run praat:fetch && bun run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "bun run build",
+    "beforeBuildCommand": "bun run praat:fetch && bun run build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -29,7 +29,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["app", "dmg", "appimage", "deb", "rpm", "nsis"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -41,5 +41,14 @@
       "entitlements": "./Entitlements.plist"
     },
     "externalBin": ["binaries/praat"]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/hanzlah101/rehearse/releases/latest/download/latest.json"
+      ],
+      "pubkey": "",
+      "requireSignedVersion": true
+    }
   }
 }

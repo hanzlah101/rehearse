@@ -29,7 +29,7 @@ const PLATFORMS = [
   },
   {
     Icon: IconBrandUbuntu,
-    detail: "AppImage and .deb",
+    detail: "AppImage, .deb and .rpm",
     id: "linux",
     name: "Linux",
   },

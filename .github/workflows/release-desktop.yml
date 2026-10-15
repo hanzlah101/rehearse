@@ -1,0 +1,181 @@
+# Builds the desktop app for every platform when a version tag is pushed
+# (git tag v0.2.0 && git push --tags), and attaches the installers plus the
+# updater's latest.json to a draft GitHub Release. Publishing the draft is
+# what makes installed apps see the update. See docs/DEPLOYMENT.md.
+#
+# The builds run in parallel and upload only their own bundles and .sig
+# files; latest.json is written once, by the last job, from all of them.
+# (tauri-action's own latest.json upload reads, edits and replaces one shared
+# file per job, so two builds finishing together could drop a platform.)
+name: Release desktop
+
+on:
+  push:
+    tags: ["v*"]
+
+# Jobs that create or edit the release ask for write access themselves.
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check the release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Tag matches apps/desktop/package.json
+        run: |
+          version=$(jq -r .version apps/desktop/package.json)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME doesn't match package.json version $version"
+            exit 1
+          fi
+      - name: Updater public key is set
+        run: |
+          if [ -z "$(jq -r .plugins.updater.pubkey apps/desktop/src-tauri/tauri.conf.json)" ]; then
+            echo "::error::Set plugins.updater.pubkey in tauri.conf.json (docs/DEPLOYMENT.md)"
+            exit 1
+          fi
+      - name: Secrets and variables are set
+        env:
+          API_URL: ${{ vars.API_URL }}
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          [ -n "$API_URL" ] || { echo "::error::Add the API_URL repository variable"; exit 1; }
+          [ -n "$SIGNING_KEY" ] || { echo "::error::Add the TAURI_SIGNING_PRIVATE_KEY secret"; exit 1; }
+
+  build:
+    name: Build ${{ matrix.name }}
+    needs: check
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS (Apple Silicon)
+            platform: macos-latest
+            target: aarch64-apple-darwin
+          - name: macOS (Intel)
+            platform: macos-latest
+            target: x86_64-apple-darwin
+          - name: Linux
+            platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - name: Windows
+            platform: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+          key: ${{ matrix.target }}
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf cmake clang libclang-dev
+      - run: bun install --frozen-lockfile
+      # Praat for this target is fetched by beforeBuildCommand.
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Baked into the app: the production API.
+          VITE_API_URL: ${{ vars.API_URL }}
+          # Signs the update bundles; installed apps reject anything else.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # macOS signing + notarization: uncomment once the secrets exist
+          # (empty values make the bundler try, and fail).
+          # APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          # APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          # APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          projectPath: apps/desktop
+          tauriScript: bun run tauri
+          args: --target ${{ matrix.target }} --config src-tauri/tauri.release.conf.json
+          tagName: ${{ github.ref_name }}
+          releaseName: Rehearse ${{ github.ref_name }}
+          releaseBody: "Rehearse is in beta: expect rough edges. Download the installer for your computer below. Installed apps update themselves once this release is published."
+          releaseDraft: true
+          # Betas are still published as normal releases: GitHub's
+          # releases/latest (the updater feed and the website's downloads)
+          # skips prereleases. The version and these notes say "beta".
+          prerelease: false
+          # Written once by the updater-json job below.
+          uploadUpdaterJson: false
+
+  updater-json:
+    name: Write latest.json
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # One entry per platform: the updater bundle (the .app.tar.gz on macOS,
+      # the AppImage on Linux, the NSIS setup.exe on Windows, the only Windows
+      # installer we ship) with the contents of its .sig file. The updater looks for
+      # {os}-{arch}-{bundle} before {os}-{arch}, so .deb, .rpm and NSIS
+      # installs get their own entries instead of falling back to a bundle
+      # type they can't install.
+      - name: Build latest.json from the release's signatures
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          gh release download "$TAG" --repo "$REPO" --pattern '*.sig' --dir sigs
+
+          # platform key, then the glob(s) its .sig file may match
+          entry() {
+            local key=$1 sig=""
+            shift
+            for pattern in "$@"; do
+              sig=$(find sigs -maxdepth 1 -name "$pattern" | head -n 1)
+              [ -n "$sig" ] && break
+            done
+            if [ -z "$sig" ]; then
+              echo "::error::No updater signature for $key (looked for: $*)" >&2
+              exit 1
+            fi
+            local bundle
+            bundle=$(basename "$sig" .sig)
+            jq -n --arg key "$key" --rawfile signature "$sig" \
+              --arg url "https://github.com/$REPO/releases/download/$TAG/$bundle" \
+              '{($key): {signature: $signature, url: $url}}'
+          }
+
+          {
+            entry darwin-aarch64 '*aarch64.app.tar.gz.sig'
+            entry darwin-x86_64 '*x64.app.tar.gz.sig' '*x86_64.app.tar.gz.sig'
+            entry linux-x86_64 '*.AppImage.sig'
+            entry windows-x86_64 '*-setup.exe.sig'
+            entry linux-x86_64-deb '*.deb.sig'
+            entry linux-x86_64-rpm '*.rpm.sig'
+            entry windows-x86_64-nsis '*-setup.exe.sig'
+          } > entries.json
+          jq -s 'add' entries.json > platforms.json
+
+          jq -n --arg version "${TAG#v}" \
+            --arg date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --slurpfile platforms platforms.json \
+            '{version: $version, notes: "", pub_date: $date, platforms: $platforms[0]}' \
+            > latest.json
+          cat latest.json
+          gh release upload "$TAG" latest.json --repo "$REPO" --clobber

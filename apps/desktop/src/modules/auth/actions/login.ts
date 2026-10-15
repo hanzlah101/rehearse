@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 
+import { setToken } from "@/modules/auth/lib/token";
 import { sessionQueryOptions } from "@/modules/auth/queries/session";
 import { orpc } from "@/modules/common/lib/orpc";
 
@@ -11,7 +12,9 @@ export function useLogin() {
 
   return useMutation(
     orpc.auth.login.mutationOptions({
-      onSuccess: (session) => {
+      // The token goes to the OS credential store, never into the cache.
+      onSuccess: async ({ token, ...session }) => {
+        await setToken(token);
         queryClient.setQueryData(sessionQueryOptions.queryKey, session);
         void navigate({ replace: true, to: "/" });
       },
