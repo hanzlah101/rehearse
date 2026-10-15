@@ -18,7 +18,6 @@ import {
 import {
   Form,
   FormAlert,
-  FormDescription,
   FormError,
   FormField,
   FormLabel,
@@ -78,7 +77,6 @@ function PasswordForm() {
             <FormField>
               <FormLabel>New password</FormLabel>
               <PasswordField autoComplete="new-password" />
-              <FormDescription>At least 8 characters.</FormDescription>
               <FormError />
             </FormField>
           )}
