@@ -47,7 +47,7 @@
       "endpoints": [
         "https://github.com/hanzlah101/rehearse/releases/latest/download/latest.json"
       ],
-      "pubkey": "",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNGQjEyQjNENDBFRjIwRTYKUldUbUlPOUFQU3V4UDNCWDE5ZHk3VzJCRUhBeFpiODZRSGk0a1ZDMDJITXJoUE4xdXQvcDd5UmwK",
       "requireSignedVersion": true
     }
   }
