@@ -91,6 +91,7 @@ Rules for every finding:
 - Reference the sentence by its index i, and copy the student's exact words from that sentence into "quote", character for character. Never invent or paraphrase a quote.
 - This is speech, not writing. Never flag normal spoken fragments, contractions, false starts, self-corrections, or informal but correct phrasing. Spoken forms like "gonna", "wanna", "kinda" and "gotta" are fine. Fillers are measured separately: never list them, or a quote that contains one ("the a like uh the"), as grammar, vocabulary or repetition issues.
 - Every fix, better word and rewrite must itself be correct English, keep the student's meaning and facts, and add nothing they didn't say. Check it before you answer.
+- Keep the student's tense and time frame unless it's wrong: a past story stays in the past ("yesterday I went", "they gave me"), a habit stays in the present ("I usually call a friend"), a plan or "if" situation keeps its future ("if I'm hungry, I'll call a friend", not "I call"). Within one story or example, keep every sentence in the same tense, and match the sentences around it.
 - "why" is one short, friendly sentence at the student's level.
 - Respect the limits given in the input. Fewer, high-value findings beat many trivial ones. Return empty lists when there is nothing worth saying.
 
