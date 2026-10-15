@@ -91,7 +91,7 @@ Without it the app still works, but people see warnings.
 
 | Platform | Without signing | What you need |
 | --- | --- | --- |
-| macOS | "can't be opened because Apple cannot check it" (right-click → Open gets past it) | Apple Developer Program ($99/yr): a Developer ID Application certificate, exported as `.p12`. Add `APPLE_CERTIFICATE` (base64 of the .p12), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD` (app-specific password), `APPLE_TEAM_ID` as secrets, then uncomment them in `release-desktop.yml`. |
+| macOS | "Apple could not verify Rehearse is free of malware": open it once from System Settings → Privacy & Security → **Open Anyway** (older macOS: right-click → Open). The bundle is ad-hoc signed (`bundle.macOS.signingIdentity: "-"`); without that signature macOS calls a downloaded app "damaged" with no way past it. | Apple Developer Program ($99/yr): a Developer ID Application certificate, exported as `.p12`. Add `APPLE_CERTIFICATE` (base64 of the .p12), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD` (app-specific password), `APPLE_TEAM_ID` as secrets, then uncomment them in `release-desktop.yml`. |
 | Windows | SmartScreen "unknown publisher" (More info → Run anyway) | Azure Trusted Signing or an OV/EV code-signing certificate, configured in `bundle.windows` (Tauri docs: Windows code signing). |
 | Linux | No warnings | Nothing. |
 
