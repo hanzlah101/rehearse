@@ -56,26 +56,31 @@ export function UpdateCard() {
     }
   }
 
+  // Restart sits under the text at full width, so its spinner can't squeeze
+  // the title onto a second line.
   return (
-    <output className="mx-3 mt-3 flex items-center gap-3 rounded-lg bg-primary/8 p-3 ring-1 ring-primary/20 ring-inset dark:bg-primary/15">
-      <IconCircleArrowDownFilled
-        aria-hidden
-        className="size-5 shrink-0 text-primary"
-      />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">Update ready</p>
-        <p className="truncate text-xs text-muted-foreground">
-          Rehearse {update.version}
-        </p>
+    <output className="mx-3 mt-3 flex flex-col gap-3 rounded-lg bg-primary/8 p-3 ring-1 ring-primary/20 ring-inset dark:bg-primary/15">
+      <div className="flex items-center gap-3">
+        <IconCircleArrowDownFilled
+          aria-hidden
+          className="size-5 shrink-0 text-primary"
+        />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium">Update ready</p>
+          <p className="truncate text-xs text-muted-foreground">
+            Rehearse {update.version}
+          </p>
+        </div>
       </div>
       <Button
+        className="w-full"
         isLoading={isRestarting}
         onPress={() => {
           void restart();
         }}
         size="sm"
       >
-        Restart
+        Restart to update
       </Button>
     </output>
   );
