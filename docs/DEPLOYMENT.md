@@ -96,13 +96,20 @@ Without it the app still works, but people see warnings.
 
 Versions follow semver (`MAJOR.MINOR.PATCH`): patch = fixes, minor = features, major = breaks old data or behaviour. The single source of truth is `version` in `apps/desktop/package.json` (`tauri.conf.json` reads it).
 
+**Rehearse is in beta.** Until the first stable release, versions carry a `-beta.N` suffix (`0.1.0-beta.1` → `0.1.0-beta.2` → … → `0.1.0`), and customers see it: a "Beta" badge next to the logo in the app and on the website, "Free while in beta" under the download button, and the release notes open with it. The updater orders these correctly (`0.1.0-beta.2` is newer than `0.1.0-beta.1`, and `0.1.0` newer than both), so betas update straight into the stable release. Two consequences:
+
+- Windows ships only the NSIS installer (`setup.exe`). An MSI's version must be numeric, so it can't carry `-beta`.
+- Releases are published as normal releases, not GitHub prereleases: `releases/latest`, which the updater and the website's download links use, skips prereleases. The version and the notes are what say "beta".
+
+When leaving beta, drop the suffix and remove the badges (`Badge` in the desktop sidebar, narrow top bar and login page; the website header) and the "while in beta" wording.
+
 1. Make sure `main` is green and the web app is already deployed with any API the new version needs (old API, new app must also keep working until everyone updates).
-2. Bump `version` in `apps/desktop/package.json`, e.g. `0.1.0` → `0.2.0`.
+2. Bump `version` in `apps/desktop/package.json`, e.g. `0.1.0-beta.1` → `0.1.0-beta.2`.
 3. Commit, tag and push:
 
    ```sh
-   git commit -am "release: v0.2.0"
-   git tag v0.2.0
+   git commit -am "release: v0.1.0-beta.2"
+   git tag v0.1.0-beta.2
    git push && git push --tags
    ```
 

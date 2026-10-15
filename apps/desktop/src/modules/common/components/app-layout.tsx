@@ -2,6 +2,7 @@ import { IconLayoutSidebarFilled } from "@tabler/icons-react";
 import { Outlet } from "@tanstack/react-router";
 
 import logo from "@/assets/logo.svg";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetTrigger } from "@/components/ui/sheet";
 import { HistorySidebar } from "@/modules/history/components/history-sidebar";
@@ -32,6 +33,7 @@ export function AppLayout() {
         <div className="pointer-events-none flex items-center gap-2">
           <img src={logo} alt="" className="size-5" />
           <span className="font-heading text-sm font-semibold">Rehearse</span>
+          <Badge>Beta</Badge>
         </div>
       </div>
 

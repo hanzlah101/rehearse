@@ -36,8 +36,8 @@ export function Hero() {
       >
         <DownloadButtons />
         <p className="mt-4 max-w-md text-sm text-pretty text-muted-foreground">
-          Free. The first launch downloads a 1.6 GB speech model, so your voice
-          is transcribed on your own computer.
+          Free while in beta. The first launch downloads a 1.6 GB speech model,
+          so your voice is transcribed on your own computer.
         </p>
       </BlurFade>
     </section>
