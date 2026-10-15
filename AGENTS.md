@@ -33,6 +33,31 @@ bun --filter desktop praat:fetch   # Praat sidecar into src-tauri/binaries (need
 
 **Deploying:** see `docs/DEPLOYMENT.md`. Web: Netlify from `apps/web/netlify.toml` (site base directory `apps/web`; `@netlify/vite-plugin-tanstack-start`, loaded only for `vite build` because its dev emulation crashes `vite dev`; production runs migrations first; 60 s function limit, so LLM calls time out at 50 s). Desktop: push a `v*` tag matching `apps/desktop/package.json` (the version's single source; `tauri.conf.json` reads `../package.json`; in beta it's `0.1.0-beta.N`, shown to customers as a `Badge` next to the logo in the app and on the website, so Windows ships NSIS only since an MSI version must be numeric, and releases stay non-prerelease because `releases/latest` skips prereleases) → `.github/workflows/release-desktop.yml` builds all platforms with `tauri-action` into a draft GitHub Release with signed updater artifacts, then its `updater-json` job writes `latest.json` once from the `.sig` files (builds set `uploadUpdaterJson: false`: parallel jobs editing one shared file could drop a platform) (`src-tauri/tauri.release.conf.json` turns them on only there, so local builds need no key). macOS builds need `bundle.macOS.minimumSystemVersion` `11.0` (whisper.cpp uses `std::filesystem`, unavailable below 10.15; Tauri's 10.13 default broke release builds) and `src-tauri/build.rs` links clang's runtime (`clang_rt.osx`) for whisper.cpp Metal's `@available` checks. x86 release builds set `GGML_NATIVE=OFF` with `GGML_AVX`/`AVX2`/`FMA`/`F16C` (the release workflow's env; whisper-rs-sys passes `GGML_*` to CMake), so whisper.cpp isn't tuned to the CI runner's CPU (AVX-512) and crash users' machines; Apple Silicon stays native. The bundle is ad-hoc signed (`bundle.macOS.signingIdentity: "-"`, overridden by an `APPLE_SIGNING_IDENTITY` secret once there's a Developer ID): otherwise only the binary carries the linker's signature, the bundle has no sealed resources, and macOS calls a downloaded copy "damaged". Both only show in release builds: `tauri dev` ignores the minimum. `tauri-plugin-updater` checks `releases/latest/download/latest.json` once per launch in release builds (`modules/common/components/update-checker.tsx`) and downloads a newer release in the background without installing it (installing closes the app on Windows); a toast announces it once and `UpdateCard` (`modules/common/components/update-card.tsx`, in the sidebar above the usage meter, not dismissable) offers Restart until the student restarts, which installs and relaunches (`modules/common/lib/update.ts`). `.github/workflows/ci.yml` runs lint, typecheck, tests, rustfmt and clippy on PRs. Keep API changes backwards compatible: installed apps lag behind.
 
+**Releasing the desktop app** (full guide: `docs/DEPLOYMENT.md` → Releasing). The release workflow's first job checks that the pushed tag equals `v` + `version` in `apps/desktop/package.json`, and fails with `Tag vX doesn't match package.json version Y` otherwise. So the version is bumped and merged **before** tagging, never the other way round:
+
+1. On a branch `release/vX.Y.Z-beta.N`, bump `version` in `apps/desktop/package.json` (the only place; `tauri.conf.json` reads it). Betas count up: `0.1.0-beta.2` → `0.1.0-beta.3`. Commit `release: vX.Y.Z-beta.N`, open a PR, merge it.
+2. Tag the merged commit on `main` and push only that tag:
+   ```sh
+   git checkout main && git pull
+   grep '"version"' apps/desktop/package.json   # must print the version you're about to tag
+   git tag v0.1.0-beta.3
+   git push origin v0.1.0-beta.3
+   ```
+3. GitHub Actions → **Release desktop**: check → four builds (macOS arm64 + x64, Linux, Windows) → Write latest.json. Takes a while (whisper.cpp compiles on every platform).
+4. Download an installer from the **draft** release and try it. Drafts are invisible to `releases/latest`, so neither installed apps nor the website's download links see it yet.
+5. Edit the release, write notes, **Publish**. Installed apps pick it up on their next launch; website downloads switch within 5 minutes (CDN cache).
+
+A tag pushed too early (the check failed, or a build failed and needs a code fix): delete it on GitHub and locally, fix or bump on `main` through a PR, then tag again. If the failed run left a draft release, delete that too.
+
+```sh
+git push origin :refs/tags/v0.1.0-beta.3   # delete the remote tag
+git tag -d v0.1.0-beta.3                   # delete the local tag
+```
+
+Never re-use a version that was already **published**: installed apps only move to a newer version. Ship the fix as the next beta instead.
+
+Web changes (`apps/web`, including the API and Inngest functions) need none of this: Netlify deploys every merge to `main`. Only desktop changes need a release, and API changes must stay backwards compatible because installed apps update late.
+
 Linting/formatting is **Ultracite on Oxlint + Oxfmt** (no Biome, ESLint, or Prettier). Config: root `oxlint.config.mts` (presets `core`, `react`, `shadcn` + `@shadcn/lint` plugin) and `oxfmt.config.mts`; `apps/web/oxlint.config.ts` extends root and adds the `tanstack` preset. `@shadcn/lint` flags class names Tailwind doesn't know. Types: `type` aliases, not `interface` (lint-enforced everywhere; the only exception is a `declare module` augmentation, which needs `interface` and gets a `// oxlint-disable-next-line typescript/consistent-type-definitions` on that line), derive with `Pick`/`Omit`/`Extract`/`z.infer`/`$inferSelect` instead of redeclaring shapes. Style: `function` declarations for named functions (convention, `func-style` is off) and components (enforced), arrows only inline (e.g. callbacks); the rules enforce kebab-case filenames, sorted object keys, no `||` for defaults (use `??`), no unsafe `as` casts. Run `bun run format && bun run lint && bun run typecheck` before finishing any task.
 
 **TypeScript 7** (native compiler) in both apps. Import from `src/` with the `@/` alias only (`@/styles.css?url`, `@/app`), never `./` or `../`. Alias is defined once in each app's `tsconfig.json` `paths`; Vite reads it via `resolve.tsconfigPaths`.

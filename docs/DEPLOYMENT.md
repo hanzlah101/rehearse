@@ -109,13 +109,15 @@ When leaving beta, drop the suffix and remove the badges (`Badge` in the desktop
 
 1. Make sure `main` is green and the web app is already deployed with any API the new version needs (old API, new app must also keep working until everyone updates).
 2. Bump `version` in `apps/desktop/package.json`, e.g. `0.1.0-beta.1` → `0.1.0-beta.2`.
-3. Commit, tag and push:
+3. Merge the bump to `main` (PR from `release/v0.1.0-beta.2`, commit `release: v0.1.0-beta.2`), then tag the merged commit and push that tag. The tag must match the version on `main`, or the release stops at its first check (`Tag … doesn't match package.json version …`):
 
    ```sh
-   git commit -am "release: v0.1.0-beta.2"
+   git checkout main && git pull
    git tag v0.1.0-beta.2
-   git push && git push --tags
+   git push origin v0.1.0-beta.2
    ```
+
+   Tagged too early? Delete the tag (`git push origin :refs/tags/v0.1.0-beta.2 && git tag -d v0.1.0-beta.2`) and any draft release it made, merge the fix, tag again.
 
 4. **Release desktop** runs (GitHub → Actions). It checks that the tag matches the version, the public key and secrets exist, then builds macOS (Apple Silicon + Intel), Windows and Linux in parallel and uploads everything to a **draft** release. Once all four are done, a last job writes the updater's `latest.json` from their signatures (one file written once, so no platform can go missing).
 5. Download an installer from the draft and try it.
