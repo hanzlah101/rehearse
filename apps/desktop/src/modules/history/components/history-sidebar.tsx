@@ -39,7 +39,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { daysAgo, formatNumber, formatPercent, formatWhen } from "@/lib/format";
 import { AccountMenu } from "@/modules/auth/components/account-menu";
 import { useSession } from "@/modules/auth/queries/session";
-import { UpdateCard } from "@/modules/common/components/update-card";
+import {
+  UpdateCard,
+  UpdateDownloadIndicator,
+} from "@/modules/common/components/update-card";
 import { useDeleteRehearsal } from "@/modules/history/actions/delete-rehearsal";
 import { UsageMeter } from "@/modules/history/components/usage-meter";
 import type { RehearsalSummary } from "@/modules/history/lib/rehearsals";
@@ -173,6 +176,7 @@ export function HistorySidebar({ className }: { className?: string }) {
             Rehearse
           </span>
           <Badge>Beta</Badge>
+          <UpdateDownloadIndicator />
         </div>
         <Button
           className="w-full"

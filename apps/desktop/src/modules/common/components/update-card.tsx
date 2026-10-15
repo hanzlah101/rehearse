@@ -2,7 +2,38 @@ import { IconCircleArrowDownFilled } from "@tabler/icons-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { restartIntoUpdate, useReadyUpdate } from "@/modules/common/lib/update";
+import { Spinner } from "@/components/ui/spinner";
+import { formatNumber } from "@/lib/format";
+import {
+  restartIntoUpdate,
+  useDownloadingUpdate,
+  useReadyUpdate,
+} from "@/modules/common/lib/update";
+
+// A small spinner by the logo while a newer release downloads in the
+// background; hovering it says what and how far. UpdateCard takes over once
+// it's ready.
+export function UpdateDownloadIndicator() {
+  const download = useDownloadingUpdate();
+  if (download === null) {
+    return null;
+  }
+  const label = `Downloading Rehearse ${download.version}${
+    download.fraction === null
+      ? ""
+      : ` · ${formatNumber(download.fraction, { maximumFractionDigits: 0, style: "percent" })}`
+  }`;
+
+  return (
+    <output
+      aria-label={label}
+      className="ml-auto flex text-muted-foreground"
+      title={label}
+    >
+      <Spinner className="size-3.5" />
+    </output>
+  );
+}
 
 // In the sidebar once a newer release has downloaded, until the student
 // restarts into it. No dismiss: an update waits for one restart, and the
