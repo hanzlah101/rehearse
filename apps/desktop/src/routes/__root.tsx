@@ -2,7 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 
 import { Toaster } from "@/components/ui/sonner";
-import { sessionQueryOptions } from "@/modules/auth/queries/session";
+import { loadSession } from "@/modules/auth/queries/session";
 import { UpdateChecker } from "@/modules/common/components/update-checker";
 import { openDatabase } from "@/modules/common/db/init";
 import { ErrorPage } from "@/modules/common/pages/error-page";
@@ -25,10 +25,11 @@ function RootLayout() {
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-  // The session (server) and the local database open in parallel.
+  // The session and the local database open in parallel. A remembered
+  // session needs no request, so launch only waits for the database.
   beforeLoad: async ({ context }) => {
     const [session] = await Promise.all([
-      context.queryClient.query(sessionQueryOptions),
+      loadSession(context.queryClient),
       openDatabase(),
     ]);
     return { session };
@@ -36,7 +37,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootLayout,
   errorComponent: ErrorPage,
   pendingComponent: SplashPage,
-  // Show the splash at once instead of a blank window for the default 1s;
-  // the default pendingMinMs (500) keeps it from flickering on fast loads.
-  pendingMs: 0,
+  // Only for slow launches (e.g. the first, which asks the server): a fast one
+  // goes straight to the app instead of holding the splash for pendingMinMs.
+  pendingMs: 150,
 });
