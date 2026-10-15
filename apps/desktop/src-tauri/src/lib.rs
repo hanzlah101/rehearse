@@ -1,6 +1,7 @@
 mod auth;
 mod db;
 mod speech;
+mod window;
 
 use tauri::Manager;
 
@@ -11,11 +12,20 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+        // Tracks and saves the window's size and place; window::open restores
+        // them at launch.
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .skip_initial_state(window::MAIN)
+                .build(),
+        )
         .setup(|app| {
             let database = db::open(app.handle())?;
             app.manage(database);
             app.manage(speech::Speech::default());
+            if let Some(main) = app.get_webview_window(window::MAIN) {
+                window::open(&main)?;
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

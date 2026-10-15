@@ -135,7 +135,8 @@ async function startRun(job: FeedbackJob) {
 
 // Starts a review of one attempt. Idempotent per attempt: a queued, running or
 // finished job is returned as is; a failed or cancelled one starts again with
-// the new input.
+// the new input, and so does a finished one when `rerun` is set (the router
+// checks the flag).
 export async function submitFeedback(
   studentId: string,
   input: SubmitFeedbackInput
@@ -152,7 +153,11 @@ export async function submitFeedback(
     .limit(1);
 
   if (existing !== undefined) {
-    if (existing.status !== "failed" && existing.status !== "cancelled") {
+    const restarts =
+      existing.status === "failed" ||
+      existing.status === "cancelled" ||
+      (input.rerun && existing.status === "completed");
+    if (!restarts) {
       return toView(existing);
     }
 
