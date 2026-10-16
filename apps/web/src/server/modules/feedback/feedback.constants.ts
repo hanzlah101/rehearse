@@ -20,6 +20,12 @@ export const FEEDBACK_CALL_TIMEOUT_MS = 50_000;
 export const FEEDBACK_START_TIMEOUT = "5m";
 export const FEEDBACK_STUCK_AFTER_MS = 6 * 60 * 1000;
 
+// The better version's rewrites go in calls of at most this many sentences
+// or characters (about 500 tokens of transcript), so each answer stays small
+// and quick whatever the talk's length.
+export const REWRITE_CHUNK_SENTENCES = 12;
+export const REWRITE_CHUNK_CHARS = 2000;
+
 // Talks are 1–10 minutes; leave headroom for overtime.
 export const FEEDBACK_MAX_TARGET_SECONDS = 900;
 export const FEEDBACK_MAX_SENTENCES = 800;

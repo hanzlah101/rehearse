@@ -4,6 +4,7 @@ import type {
   KeyPoint,
   LanguageFeedback,
   LanguageOutput,
+  RewriteOutput,
   SubmitFeedbackInput,
 } from "@/server/modules/feedback/feedback.schemas";
 
@@ -73,7 +74,7 @@ export function sanitizeLanguage(
   input: SubmitFeedbackInput,
   keyPoints: KeyPoint[],
   limits: Limits
-): LanguageFeedback {
+): Omit<LanguageFeedback, "rephrasings"> {
   const sentences = new Map(input.sentences.map(({ i, text }) => [i, text]));
   const fillerIds = new Set(input.fillerCandidates.map(({ id }) => id));
   const pauseIds = new Set(input.pauseCandidates.map(({ id }) => id));
@@ -120,16 +121,6 @@ export function sanitizeLanguage(
     linking: output.linking
       .filter(({ i }) => sentences.has(i))
       .slice(0, limits.linking),
-    // The whole sentence is the quote; a rewrite that changes nothing goes.
-    rephrasings: uniqueBy(
-      output.rephrasings.flatMap(({ better, i, why }) => {
-        const quote = sentences.get(i);
-        return quote === undefined || normalize(better) === normalize(quote)
-          ? []
-          : [{ better, i, quote, why }];
-      }),
-      ({ i }) => String(i)
-    ).slice(0, limits.rephrasings),
     repetition: uniqueBy(
       output.repetition.filter(
         ({ phrase }) =>
@@ -153,6 +144,28 @@ export function sanitizeLanguage(
       .filter(({ better, quote }) => normalize(better) !== normalize(quote))
       .slice(0, limits.vocabulary),
   };
+}
+
+// One rewrite call's answer: only sentences it was asked to rewrite, each
+// once, with the whole sentence as the quote; a rewrite that changes nothing
+// goes.
+export function sanitizeRewrites(
+  output: RewriteOutput,
+  sentences: SubmitFeedbackInput["sentences"]
+): LanguageFeedback["rephrasings"] {
+  const asked = new Map(sentences.map(({ i, text }) => [i, text]));
+
+  return uniqueBy(
+    output.rephrasings.flatMap(({ better, i, why }) => {
+      const quote = asked.get(i);
+      return quote === undefined ||
+        better.trim() === "" ||
+        normalize(better) === normalize(quote)
+        ? []
+        : [{ better: better.trim(), i, quote, why }];
+    }),
+    ({ i }) => String(i)
+  );
 }
 
 export function sanitizeContent(
