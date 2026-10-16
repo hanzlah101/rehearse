@@ -14,20 +14,25 @@ import {
   CONTENT_INSTRUCTIONS,
   KEY_POINTS_INSTRUCTIONS,
   LANGUAGE_INSTRUCTIONS,
+  REWRITE_INSTRUCTIONS,
   contentPrompt,
   keyPointsPrompt,
   languagePrompt,
   limitsFor,
+  rewritePrompt,
 } from "@/server/modules/feedback/feedback.prompts";
+import type { RewriteChunk } from "@/server/modules/feedback/feedback.prompts";
 import {
   sanitizeContent,
   sanitizeKeyPoints,
   sanitizeLanguage,
+  sanitizeRewrites,
 } from "@/server/modules/feedback/feedback.sanitize";
 import {
   contentCheckSchema,
   keyPointsOutputSchema,
   languageOutputSchema,
+  rewriteOutputSchema,
 } from "@/server/modules/feedback/feedback.schemas";
 import type {
   KeyPoint,
@@ -168,6 +173,24 @@ export async function reviewLanguage(
     model,
     usage,
   };
+}
+
+// The better version's rewrites for one group of sentences (Call A's
+// companion, split so no answer grows with the talk).
+export async function rewriteSentences(
+  topic: string,
+  chunk: RewriteChunk,
+  attempt: number
+) {
+  const { output, usage } = await generate({
+    attempt,
+    instructions: REWRITE_INSTRUCTIONS,
+    name: "better_version",
+    prompt: rewritePrompt(topic, chunk),
+    schema: rewriteOutputSchema,
+  });
+
+  return { rephrasings: sanitizeRewrites(output, chunk.sentences), usage };
 }
 
 // Call B: technical correctness (PLAN §3.6), not part of the score.

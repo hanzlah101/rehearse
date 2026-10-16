@@ -3,6 +3,7 @@ import {
   checkContent,
   generateKeyPoints,
   reviewLanguage,
+  rewriteSentences,
 } from "@/server/modules/feedback/feedback.ai";
 import type { Usage } from "@/server/modules/feedback/feedback.ai";
 import { FEEDBACK_START_TIMEOUT } from "@/server/modules/feedback/feedback.constants";
@@ -11,6 +12,10 @@ import {
   feedbackChannel,
   feedbackRequested,
 } from "@/server/modules/feedback/feedback.events";
+import {
+  limitsFor,
+  rewriteChunks,
+} from "@/server/modules/feedback/feedback.prompts";
 import type {
   FeedbackJobStatus,
   FeedbackStage,
@@ -36,7 +41,8 @@ async function recordUsage(jobId: string, usage: Usage) {
 }
 
 // Reviews one attempt: key points (cached per topic and length), then the
-// language call, then the content check, each a durable step retried on its
+// language call with the better version's rewrites alongside it, then the
+// content check, each a durable step retried on its
 // own with backoff (the smaller model takes over after two failures). Stage
 // changes go to the job row (for polling) and the realtime channel (live).
 // Runs on Inngest, so it finishes even if the desktop goes offline.
@@ -122,11 +128,40 @@ export const reviewAttempt = inngest.createFunction(
       return { skipped: true };
     }
 
-    const language = await step.run("language", async () => {
-      const reviewed = await reviewLanguage(input, keyPoints, attempt);
-      await recordUsage(jobId, reviewed.usage);
-      return { language: reviewed.language, model: reviewed.model };
-    });
+    // Call A and the better version's rewrites, in parallel. The rewrites
+    // are one small step per group of sentences, so no answer outgrows the
+    // model's output budget however long the talk is; each step retries on
+    // its own.
+    const [reviewed, rewrites] = await Promise.all([
+      step.run("language", async () => {
+        const result = await reviewLanguage(input, keyPoints, attempt);
+        await recordUsage(jobId, result.usage);
+        return { language: result.language, model: result.model };
+      }),
+      Promise.all(
+        rewriteChunks(input.sentences).map(
+          async (chunk, index) =>
+            await step.run(`rewrite-${index + 1}`, async () => {
+              const result = await rewriteSentences(
+                input.topic,
+                chunk,
+                attempt
+              );
+              await recordUsage(jobId, result.usage);
+              return result.rephrasings;
+            })
+        )
+      ),
+    ]);
+    const language = {
+      language: {
+        ...reviewed.language,
+        rephrasings: rewrites
+          .flat()
+          .slice(0, limitsFor(input.spokenSeconds).rephrasings),
+      },
+      model: reviewed.model,
+    };
 
     if (!(await advance("content", "running"))) {
       return { skipped: true };
