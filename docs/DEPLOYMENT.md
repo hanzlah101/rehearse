@@ -86,13 +86,34 @@ Optional: Settings → Branches → protect `main` and require the **CI** checks
 3. Production deploys run `bun run db:migrate` before building (`apps/web/netlify.toml`), so new migrations apply on deploy.
 4. Function limit: 60 s per request, not configurable. Each Inngest step is one request; LLM calls time out at 50 s (`FEEDBACK_CALL_TIMEOUT_MS`) and Inngest retries them.
 
-### 6. OS code signing (optional at first, needed for a wide release)
+### 6. macOS signing certificate (free, do it once)
+
+macOS ties permissions (the microphone, the saved sign-in in the Keychain) to the app's code signature. Ad-hoc signing (`signingIdentity: "-"`) identifies the app by a hash of each build, so after every update macOS treats it as a new app: it asks for the microphone again and the Keychain asks about the saved sign-in. A self-signed certificate fixes that for free: every release signed with it is the same app to macOS (`identifier "app.rehearse.desktop" and certificate leaf = …`). It doesn't change Gatekeeper ("Open Anyway" once, as before); that needs an Apple Developer ID (step 7).
+
+Create it once, in your own terminal (OpenSSL or macOS's LibreSSL):
+
+```sh
+openssl req -x509 -newkey rsa:2048 -days 3650 -nodes \
+  -keyout rehearse-signing.key -out rehearse-signing.crt -subj "/CN=Rehearse" \
+  -addext "keyUsage=critical,digitalSignature" \
+  -addext "extendedKeyUsage=critical,codeSigning" \
+  -addext "basicConstraints=critical,CA:false"
+openssl pkcs12 -export -keypbe PBE-SHA1-3DES -certpbe PBE-SHA1-3DES -macalg sha1 \
+  -inkey rehearse-signing.key -in rehearse-signing.crt -out rehearse-signing.p12   # asks for a password
+base64 -i rehearse-signing.p12 | pbcopy   # the secret's value, now on the clipboard
+```
+
+Add two repository secrets (Settings → Secrets and variables → Actions): `MACOS_SIGNING_CERTIFICATE` (the clipboard) and `MACOS_SIGNING_CERTIFICATE_PASSWORD` (the password). Keep the `.p12` and its password in your password manager and delete the other files; a new certificate would make macOS ask once more. The release workflow imports it into a temporary keychain and signs with it; without the secrets it falls back to ad-hoc signing with a warning.
+
+The first release signed this way still asks once (it's a new identity compared with the ad-hoc builds); every release after that keeps the permissions.
+
+### 7. OS code signing (optional at first, needed for a wide release)
 
 Without it the app still works, but people see warnings.
 
 | Platform | Without signing | What you need |
 | --- | --- | --- |
-| macOS | "Apple could not verify Rehearse is free of malware": open it once from System Settings → Privacy & Security → **Open Anyway** (older macOS: right-click → Open). The bundle is ad-hoc signed (`bundle.macOS.signingIdentity: "-"`); without that signature macOS calls a downloaded app "damaged" with no way past it. | Apple Developer Program ($99/yr): a Developer ID Application certificate, exported as `.p12`. Add `APPLE_CERTIFICATE` (base64 of the .p12), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD` (app-specific password), `APPLE_TEAM_ID` as secrets, then uncomment them in `release-desktop.yml`. |
+| macOS | "Apple could not verify Rehearse is free of malware": open it once from System Settings → Privacy & Security → **Open Anyway** (older macOS: right-click → Open). The bundle is signed with the self-signed certificate (step 6), or ad-hoc without it (`bundle.macOS.signingIdentity: "-"`); unsigned, macOS calls a downloaded app "damaged" with no way past it. | Apple Developer Program ($99/yr): a Developer ID Application certificate, exported as `.p12`. Add `APPLE_CERTIFICATE` (base64 of the .p12), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD` (app-specific password), `APPLE_TEAM_ID` as secrets, uncomment them in `release-desktop.yml` and remove the step-6 import (or its secrets). The identity changes once more then, so macOS asks for permissions one last time. |
 | Windows | SmartScreen "unknown publisher" (More info → Run anyway) | Azure Trusted Signing or an OV/EV code-signing certificate, configured in `bundle.windows` (Tauri docs: Windows code signing). |
 | Linux | No warnings | Nothing. |
 
