@@ -116,6 +116,12 @@
       "skillPath": "packages/start-client-core/skills/start-core/server-routes/SKILL.md",
       "computedHash": "2af3c4193f978eda8f08844a2dde4cc2640aac284b8b5590611a58909c683f46"
     },
+    "shadcn": {
+      "source": "shadcn-ui/ui",
+      "sourceType": "github",
+      "skillPath": "skills/shadcn/SKILL.md",
+      "computedHash": "b864a958765563321f485a96f4d59c0bb6539f4286ab6d8b8b66895b7ebd302d"
+    },
     "start-core": {
       "source": "tanstack/router",
       "sourceType": "github",
