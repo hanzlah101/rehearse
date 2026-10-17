@@ -132,7 +132,7 @@ function Platform({ os }: { os: Os }) {
   return (
     <TabPanel className="mt-3 outline-hidden" id={os}>
       <div className="flex h-12 w-full max-w-xl items-center gap-2 rounded-xl bg-card pr-1.5 pl-4 shadow-xs ring-1 ring-border">
-        <code className="min-w-0 flex-1 overflow-x-auto font-mono text-sm whitespace-nowrap">
+        <code className="no-scrollbar min-w-0 flex-1 scroll-fade-x overflow-x-auto font-mono text-sm whitespace-nowrap">
           {command}
         </code>
         <CopyButton text={command} />
