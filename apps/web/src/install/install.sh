@@ -58,6 +58,8 @@ install_macos() {
 	hdiutil attach -nobrowse -readonly -quiet -mountpoint "$mounted" "$dmg" ||
 		fail "the download isn't a disk image. Try again in a few minutes."
 
+	[ -d "$mounted/$APP.app" ] || fail "the disk image has no $APP.app. Try again in a few minutes."
+
 	target="/Applications/$APP.app"
 	if [ -w /Applications ]; then
 		rm -rf "$target"

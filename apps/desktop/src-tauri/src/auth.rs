@@ -40,7 +40,7 @@ pub async fn auth_token_clear(app: AppHandle) -> Result<(), String> {
 mod store {
     use std::fs::{self, OpenOptions};
     use std::io::{ErrorKind, Write};
-    use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+    use std::os::unix::fs::OpenOptionsExt;
     use std::path::PathBuf;
 
     use tauri::{AppHandle, Manager};
@@ -62,19 +62,26 @@ mod store {
         }
     }
 
+    // Written to a fresh owner-only file, then renamed over the old one, so the
+    // token is never readable by others and a failed write keeps the old token.
     pub fn set(app: &AppHandle, token: &str) -> Result<(), String> {
         let path = path(app)?;
+        let partial = path.with_extension("partial");
+        match fs::remove_file(&partial) {
+            Err(error) if error.kind() != ErrorKind::NotFound => {
+                return Err(error.to_string());
+            }
+            _ => {}
+        }
         let mut file = OpenOptions::new()
             .write(true)
-            .create(true)
-            .truncate(true)
+            .create_new(true)
             .mode(0o600)
-            .open(&path)
-            .map_err(|error| error.to_string())?;
-        // `mode` only applies to a new file.
-        fs::set_permissions(&path, fs::Permissions::from_mode(0o600))
+            .open(&partial)
             .map_err(|error| error.to_string())?;
         file.write_all(token.as_bytes())
+            .and_then(|()| file.sync_all())
+            .and_then(|()| fs::rename(&partial, &path))
             .map_err(|error| error.to_string())
     }
 

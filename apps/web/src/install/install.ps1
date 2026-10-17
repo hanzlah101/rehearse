@@ -20,8 +20,8 @@ Write-Host 'Downloading Rehearse...'
 try {
   Invoke-WebRequest -Uri '__SITE__/download/windows' -OutFile $installer -UseBasicParsing
 } catch {
-  Write-Host "Couldn't download Rehearse. Check your connection and try again." -ForegroundColor Red
-  return
+  # throw, not exit: run through iex, exit would close the user's window.
+  throw "Couldn't download Rehearse. Check your connection and try again."
 }
 Unblock-File -Path $installer
 

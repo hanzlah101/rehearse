@@ -96,7 +96,12 @@ function CopyButton({ text }: { text: string }) {
   const [isCopied, setIsCopied] = useState(false);
 
   async function copy() {
-    await navigator.clipboard.writeText(text);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Clipboard blocked: the command stays selectable on the page.
+      return;
+    }
     setIsCopied(true);
     setTimeout(() => {
       setIsCopied(false);
