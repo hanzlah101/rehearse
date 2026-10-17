@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
-// The session token lives in the OS credential store (src-tauri/src/auth.rs)
+// The session token lives in a secure store (src-tauri/src/auth.rs)
 // and is sent as `Authorization: Bearer`: the installed app is cross-site to
 // the API, so the session cookie wouldn't be sent. Read from the store once
 // per launch, then kept in memory.

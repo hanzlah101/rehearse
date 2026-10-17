@@ -21,7 +21,7 @@ The API serves two kinds of client, and each carries the session its own way:
 | Client | Session | Sent as |
 | --- | --- | --- |
 | Browsers (same origin as the API) | HttpOnly `session` cookie, `SameSite=Lax`, `Secure` in production | the cookie |
-| Desktop app | the `token` that `auth.login` returns, kept in the OS credential store (Keychain, Credential Manager, Secret Service) | `Authorization: Bearer <token>`, with `credentials: "omit"` |
+| Desktop app | the `token` that `auth.login` returns, kept in the Windows Credential Manager, or an owner-only file in the app data folder on macOS and Linux | `Authorization: Bearer <token>`, with `credentials: "omit"` |
 
 The installed app runs at `tauri://localhost` (macOS, Linux) or `http://tauri.localhost` (Windows), which is cross-site to the API, so it never relies on cookies. Those two origins only need to be in `CORS_ORIGINS` (below). The server reads the bearer header first, then the cookie (`getSessionToken`), so both work against the same deployment, and changing a password signs out the student's other sessions whichever way they signed in.
 
