@@ -151,6 +151,12 @@
       "sourceType": "github",
       "skillPath": "packages/start-client-core/skills/start-core/SKILL.md",
       "computedHash": "0a8fbde38d2b4aa31d34334f588c8a1fd7d42fe429f00ff3ece6bbbf2b390c94"
+    },
+    "ultracite": {
+      "source": "haydenbleasel/ultracite",
+      "sourceType": "github",
+      "skillPath": "skills/ultracite/SKILL.md",
+      "computedHash": "786edd8e07ffab37d1d27c68a1a991b0fe4d0ba911fc97d4f93d232115f0485e"
     }
   }
 }
