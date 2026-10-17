@@ -179,9 +179,11 @@ function InstallSkeleton() {
 export function InstallCommand() {
   const os = useOs();
 
-  // Both layers share one grid cell, so the swap happens in place.
+  // Both layers share one grid cell, so the swap happens in place. One
+  // shrinkable column (grid-cols-1 is minmax(0, 1fr)): an auto column would
+  // grow to the unwrapped command and push it past a phone's edge.
   return (
-    <div className="grid">
+    <div className="grid grid-cols-1">
       <AnimatePresence initial={false}>
         {os === "pending" ? (
           <InstallSkeleton key="pending" />
