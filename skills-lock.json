@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "skills": {
+    "ai-sdk": {
+      "source": "vercel/ai",
+      "sourceType": "github",
+      "skillPath": "skills/use-ai-sdk/SKILL.md",
+      "computedHash": "d6910e7d8bb527d2823ba58b6225b304ae649c135fc7e43ec2d2152251c218db"
+    },
+    "auth-and-guards": {
+      "source": "tanstack/router",
+      "sourceType": "github",
+      "skillPath": "packages/router-core/skills/router-core/auth-and-guards/SKILL.md",
+      "computedHash": "dca8e0e98b1b1abd08718d21fae6f4c511230d5e323dac005ece0ba33e0eebb3"
+    },
+    "compose-marks-and-views": {
+      "source": "tanstack/charts",
+      "sourceType": "github",
+      "skillPath": "packages/charts-core/skills/compose-marks-and-views/SKILL.md",
+      "computedHash": "f559c4ff84a1fa841eb21e6209d3ec51545a55f9d65ce519c18b4f5af06c94e4"
+    },
+    "configure-scales-guides-color": {
+      "source": "tanstack/charts",
+      "sourceType": "github",
+      "skillPath": "packages/charts-core/skills/configure-scales-guides-color/SKILL.md",
+      "computedHash": "1d0cc01c02ee02150c09fd0d1387f95321d22cab4582d56c4f48b62acb1221e9"
+    },
+    "data-loading": {
+      "source": "tanstack/router",
+      "sourceType": "github",
+      "skillPath": "packages/router-core/skills/router-core/data-loading/SKILL.md",
+      "computedHash": "8e38170db8d7ef196cc3f4fe54face009690f92aff81cc7244e6834e138f41dc"
+    },
+    "design-a-chart": {
+      "source": "tanstack/charts",
+      "sourceType": "github",
+      "skillPath": "packages/charts-core/skills/design-a-chart/SKILL.md",
+      "computedHash": "6f66adb83195e65dd2cd8df2ea1416ba90525db03d3af3375d833462adc96fc6"
+    },
+    "execution-model": {
+      "source": "tanstack/router",
+      "sourceType": "github",
+      "skillPath": "packages/start-client-core/skills/start-core/execution-model/SKILL.md",
+      "computedHash": "5b0c903da99f1541e7d0ea076aeb5badbb417319c070c5199d91ebc17853f239"
+    },
+    "inngest-durable-functions": {
+      "source": "inngest/inngest-skills",
+      "sourceType": "github",
+      "skillPath": "skills/inngest-durable-functions/SKILL.md",
+      "computedHash": "391dc92b29b79e5ac3b623a1524342b781ba260e8e298e329cd85ceb53019033"
+    },
+    "inngest-events": {
+      "source": "inngest/inngest-skills",
+      "sourceType": "github",
+      "skillPath": "skills/inngest-events/SKILL.md",
+      "computedHash": "14bfc909497f6cdee64997f343b38f2a7013f1617b753ffaffe5539a1545bd03"
+    },
+    "inngest-realtime": {
+      "source": "inngest/inngest-skills",
+      "sourceType": "github",
+      "skillPath": "skills/inngest-realtime/SKILL.md",
+      "computedHash": "bdf03799a3cc1997333ef306d0efb85c4174cc0db8da9595b4e60496a61d73d8"
+    },
+    "inngest-steps": {
+      "source": "inngest/inngest-skills",
+      "sourceType": "github",
+      "skillPath": "skills/inngest-steps/SKILL.md",
+      "computedHash": "f37a3a423739fba256a5cd8cfa35b6121bf3192a0fe2a964e5c41af1036f3de0"
+    },
+    "netlify-caching": {
+      "source": "netlify/context-and-tools",
+      "sourceType": "github",
+      "skillPath": "skills/netlify-caching/SKILL.md",
+      "computedHash": "e0d7f656c6b5aa289f73c06ab41a9693e682321d14ba29118bf39a3afc8c5686"
+    },
+    "netlify-config": {
+      "source": "netlify/context-and-tools",
+      "sourceType": "github",
+      "skillPath": "skills/netlify-config/SKILL.md",
+      "computedHash": "daebdde2be73f2b2477335ad2b05eadfc4d9fcde7ed3f71e2f5b5bb20c28cd79"
+    },
+    "netlify-frameworks": {
+      "source": "netlify/context-and-tools",
+      "sourceType": "github",
+      "skillPath": "skills/netlify-frameworks/SKILL.md",
+      "computedHash": "c0561a5a35e43e0d65af9046b7ded0256de762d6b12fb0b216b3ac34aceb120c"
+    },
+    "netlify-functions": {
+      "source": "netlify/context-and-tools",
+      "sourceType": "github",
+      "skillPath": "skills/netlify-functions/SKILL.md",
+      "computedHash": "26268934269039a80d31f76e8679e76c281cee790556dc5ff8470130cb3104da"
+    },
+    "orpc": {
+      "source": "middleapi/orpc",
+      "sourceType": "github",
+      "skillPath": "skills/orpc/SKILL.md",
+      "computedHash": "24aeb625eeb54572e2dc862648085a4f2270c9a0a6167162b7fc53290bb3acb2"
+    },
+    "orpc-openapi": {
+      "source": "middleapi/orpc",
+      "sourceType": "github",
+      "skillPath": "skills/orpc-openapi/SKILL.md",
+      "computedHash": "3375d89d95a869df9c1bad94363bebca3539a7ae0973a20e7e0089882932ac43"
+    },
+    "react-aria": {
+      "source": "react-aria.adobe.com",
+      "sourceUrl": "https://react-aria.adobe.com",
+      "sourceType": "well-known",
+      "computedHash": "d94f6d3316f26d0c803394185d54b3812665170dabfaa4763aa824a9ae898ed4",
+      "wellKnownDigest": "sha256:304d7e4dc4d550ad58b01101a0c2204adfd5d990e659104681b7e79c5a8d6926"
+    },
+    "react-start": {
+      "source": "tanstack/router",
+      "sourceType": "github",
+      "skillPath": "packages/react-start/skills/react-start/SKILL.md",
+      "computedHash": "2bdec68bf066fe3a9eef9670b1a0295e7c84cb686b4de04a22044958aea3180a"
+    },
+    "router-core": {
+      "source": "tanstack/router",
+      "sourceType": "github",
+      "skillPath": "packages/router-core/skills/router-core/SKILL.md",
+      "computedHash": "c5664f69b8e2fb103fcb55b70f6e974f8b24782e6dfc8d505ecb5038dedef1a5"
+    },
+    "router-query": {
+      "source": "tanstack/router",
+      "sourceType": "github",
+      "skillPath": "packages/react-router/skills/compositions/router-query/SKILL.md",
+      "computedHash": "1c1cbbc7b9aff420c55ae862a4dee119f77a43c5737b4b0e25375325d26fe516"
+    },
+    "search-params": {
+      "source": "tanstack/router",
+      "sourceType": "github",
+      "skillPath": "packages/router-core/skills/router-core/search-params/SKILL.md",
+      "computedHash": "abfbd24aae8f8f9e08bff34dfbea830bd03ac41ba131d017ebbf8b84d47d789d"
+    },
+    "server-routes": {
+      "source": "tanstack/router",
+      "sourceType": "github",
+      "skillPath": "packages/start-client-core/skills/start-core/server-routes/SKILL.md",
+      "computedHash": "2af3c4193f978eda8f08844a2dde4cc2640aac284b8b5590611a58909c683f46"
+    },
+    "shadcn": {
+      "source": "shadcn-ui/ui",
+      "sourceType": "github",
+      "skillPath": "skills/shadcn/SKILL.md",
+      "computedHash": "b864a958765563321f485a96f4d59c0bb6539f4286ab6d8b8b66895b7ebd302d"
+    },
+    "start-core": {
+      "source": "tanstack/router",
+      "sourceType": "github",
+      "skillPath": "packages/start-client-core/skills/start-core/SKILL.md",
+      "computedHash": "0a8fbde38d2b4aa31d34334f588c8a1fd7d42fe429f00ff3ece6bbbf2b390c94"
+    },
+    "ultracite": {
+      "source": "haydenbleasel/ultracite",
+      "sourceType": "github",
+      "skillPath": "skills/ultracite/SKILL.md",
+      "computedHash": "786edd8e07ffab37d1d27c68a1a991b0fe4d0ba911fc97d4f93d232115f0485e"
+    }
+  }
+}
