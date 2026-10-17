@@ -1,4 +1,4 @@
-import { DownloadButtons } from "@/components/download-buttons";
+import { InstallCommand } from "@/components/install-command";
 import { BlurFade } from "@/components/ui/blur-fade";
 
 export function CallToAction() {
@@ -8,7 +8,7 @@ export function CallToAction() {
         Practise your next talk tonight.
       </h2>
       <div className="mt-8">
-        <DownloadButtons />
+        <InstallCommand />
       </div>
     </BlurFade>
   );

@@ -10,12 +10,12 @@ export const LATEST_RELEASE_API =
   "https://api.github.com/repos/hanzlah101/rehearse/releases/latest";
 
 export const DOWNLOADS = {
-  linux: { fileEnding: ".AppImage", label: "Linux" },
+  linux: { fileEnding: ".AppImage", label: "AppImage" },
   "linux-deb": { fileEnding: ".deb", label: ".deb" },
   "linux-rpm": { fileEnding: ".rpm", label: ".rpm" },
-  macos: { fileEnding: "_aarch64.dmg", label: "macOS" },
-  "macos-intel": { fileEnding: "_x64.dmg", label: "Intel Macs" },
-  windows: { fileEnding: "-setup.exe", label: "Windows" },
+  macos: { fileEnding: "_aarch64.dmg", label: "Apple silicon" },
+  "macos-intel": { fileEnding: "_x64.dmg", label: "Intel" },
+  windows: { fileEnding: "-setup.exe", label: "the installer" },
 } as const;
 
 export type DownloadId = keyof typeof DOWNLOADS;
