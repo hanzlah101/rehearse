@@ -7,11 +7,29 @@
       "skillPath": "packages/router-core/skills/router-core/auth-and-guards/SKILL.md",
       "computedHash": "dca8e0e98b1b1abd08718d21fae6f4c511230d5e323dac005ece0ba33e0eebb3"
     },
+    "compose-marks-and-views": {
+      "source": "tanstack/charts",
+      "sourceType": "github",
+      "skillPath": "packages/charts-core/skills/compose-marks-and-views/SKILL.md",
+      "computedHash": "f559c4ff84a1fa841eb21e6209d3ec51545a55f9d65ce519c18b4f5af06c94e4"
+    },
+    "configure-scales-guides-color": {
+      "source": "tanstack/charts",
+      "sourceType": "github",
+      "skillPath": "packages/charts-core/skills/configure-scales-guides-color/SKILL.md",
+      "computedHash": "1d0cc01c02ee02150c09fd0d1387f95321d22cab4582d56c4f48b62acb1221e9"
+    },
     "data-loading": {
       "source": "tanstack/router",
       "sourceType": "github",
       "skillPath": "packages/router-core/skills/router-core/data-loading/SKILL.md",
       "computedHash": "8e38170db8d7ef196cc3f4fe54face009690f92aff81cc7244e6834e138f41dc"
+    },
+    "design-a-chart": {
+      "source": "tanstack/charts",
+      "sourceType": "github",
+      "skillPath": "packages/charts-core/skills/design-a-chart/SKILL.md",
+      "computedHash": "6f66adb83195e65dd2cd8df2ea1416ba90525db03d3af3375d833462adc96fc6"
     },
     "execution-model": {
       "source": "tanstack/router",
