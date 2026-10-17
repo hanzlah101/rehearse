@@ -8,18 +8,12 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { BlurFade } from "@/components/ui/blur-fade";
 import { ButtonLink } from "@/components/ui/button";
-import { downloadUrl, useOs } from "@/lib/downloads";
 
-// The visitor's installer, downloaded directly; the download section until
-// the OS is known (and on phones, which can't run the app). Same size either
-// way, so nothing shifts when it's read.
+// Jumps to the install commands: a direct download would hit the macOS and
+// Windows warnings for apps that aren't notarized or signed yet.
 function HeaderDownload() {
-  const os = useOs();
-  const href =
-    os === "pending" || os === "unknown" ? "#download" : downloadUrl(os);
-
   return (
-    <ButtonLink href={href} size="sm">
+    <ButtonLink href="#download" size="sm">
       <IconDownload aria-hidden data-icon="inline-start" />
       Download
     </ButtonLink>

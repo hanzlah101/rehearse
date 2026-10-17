@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as InstallDotps1RouteImport } from './routes/install[.]ps1'
+import { Route as InstallDotshRouteImport } from './routes/install[.]sh'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as ApiInngestRouteImport } from './routes/api/inngest'
 import { Route as DownloadIdRouteImport } from './routes/download.$id'
@@ -18,6 +20,16 @@ import { Route as ApiRpcSplatRouteImport } from './routes/api/rpc.$'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstallDotps1Route = InstallDotps1RouteImport.update({
+  id: '/install.ps1',
+  path: '/install.ps1',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstallDotshRoute = InstallDotshRouteImport.update({
+  id: '/install.sh',
+  path: '/install.sh',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
@@ -43,6 +55,8 @@ const ApiRpcSplatRoute = ApiRpcSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/install.ps1': typeof InstallDotps1Route
+  '/install.sh': typeof InstallDotshRoute
   '/api/$': typeof ApiSplatRoute
   '/api/inngest': typeof ApiInngestRoute
   '/download/$id': typeof DownloadIdRoute
@@ -50,6 +64,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/install.ps1': typeof InstallDotps1Route
+  '/install.sh': typeof InstallDotshRoute
   '/api/$': typeof ApiSplatRoute
   '/api/inngest': typeof ApiInngestRoute
   '/download/$id': typeof DownloadIdRoute
@@ -58,6 +74,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/install.ps1': typeof InstallDotps1Route
+  '/install.sh': typeof InstallDotshRoute
   '/api/$': typeof ApiSplatRoute
   '/api/inngest': typeof ApiInngestRoute
   '/download/$id': typeof DownloadIdRoute
@@ -65,12 +83,28 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/$' | '/api/inngest' | '/download/$id' | '/api/rpc/$'
+  fullPaths:
+    | '/'
+    | '/install.ps1'
+    | '/install.sh'
+    | '/api/$'
+    | '/api/inngest'
+    | '/download/$id'
+    | '/api/rpc/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/$' | '/api/inngest' | '/download/$id' | '/api/rpc/$'
+  to:
+    | '/'
+    | '/install.ps1'
+    | '/install.sh'
+    | '/api/$'
+    | '/api/inngest'
+    | '/download/$id'
+    | '/api/rpc/$'
   id:
     | '__root__'
     | '/'
+    | '/install.ps1'
+    | '/install.sh'
     | '/api/$'
     | '/api/inngest'
     | '/download/$id'
@@ -79,6 +113,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  InstallDotps1Route: typeof InstallDotps1Route
+  InstallDotshRoute: typeof InstallDotshRoute
   ApiSplatRoute: typeof ApiSplatRoute
   ApiInngestRoute: typeof ApiInngestRoute
   DownloadIdRoute: typeof DownloadIdRoute
@@ -92,6 +128,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/install.ps1': {
+      id: '/install.ps1'
+      path: '/install.ps1'
+      fullPath: '/install.ps1'
+      preLoaderRoute: typeof InstallDotps1RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/install.sh': {
+      id: '/install.sh'
+      path: '/install.sh'
+      fullPath: '/install.sh'
+      preLoaderRoute: typeof InstallDotshRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/$': {
@@ -127,6 +177,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  InstallDotps1Route: InstallDotps1Route,
+  InstallDotshRoute: InstallDotshRoute,
   ApiSplatRoute: ApiSplatRoute,
   ApiInngestRoute: ApiInngestRoute,
   DownloadIdRoute: DownloadIdRoute,

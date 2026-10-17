@@ -1,8 +1,8 @@
 import { motion } from "motion/react";
 
-import { DownloadButtons } from "@/components/download-buttons";
 import { Headline } from "@/components/headline";
 import { HeroWaveform } from "@/components/hero-waveform";
+import { InstallCommand } from "@/components/install-command";
 import { BlurFade } from "@/components/ui/blur-fade";
 
 export function Hero() {
@@ -34,7 +34,7 @@ export function Hero() {
         duration={0.6}
         id="download"
       >
-        <DownloadButtons />
+        <InstallCommand />
         <p className="mt-4 max-w-md text-sm text-pretty text-muted-foreground">
           Free while in beta. The first launch downloads a 1.6 GB speech model,
           so your voice is transcribed on your own computer.
